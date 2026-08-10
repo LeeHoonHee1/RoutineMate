@@ -4,6 +4,15 @@ sealed interface AppRoute {
 
     val route: String
 
+    data object Login : AppRoute {
+        override val route: String = "login"
+    }
+
+    // 회원가입 화면
+    data object Register : AppRoute {
+        override val route: String = "register"
+    }
+
     data object Home : AppRoute {
         override val route: String = "home"
     }
