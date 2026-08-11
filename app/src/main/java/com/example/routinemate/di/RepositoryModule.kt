@@ -7,6 +7,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.example.routinemate.data.repository.HabitRepositoryImpl
+import com.example.routinemate.domain.repository.HabitRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -18,4 +20,10 @@ abstract class RepositoryModule {
     abstract fun bindAuthRepository(
         impl: AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindHabitRepository(
+        habitRepositoryImpl: HabitRepositoryImpl
+    ): HabitRepository
 }

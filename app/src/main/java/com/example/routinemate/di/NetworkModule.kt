@@ -1,6 +1,7 @@
 package com.example.routinemate.di
 
 import com.example.routinemate.data.remote.api.AuthApi
+import com.example.routinemate.data.remote.api.HabitApi
 import com.example.routinemate.data.remote.api.TokenApi
 import com.example.routinemate.data.remote.auth.TokenAuthenticator
 import com.example.routinemate.data.remote.interceptor.AuthInterceptor
@@ -118,5 +119,15 @@ object NetworkModule {
     ): TokenApi {
 
         return retrofit.create(TokenApi::class.java)
+    }
+
+    // Habit API 제공
+    @Provides
+    @Singleton
+    fun provideHabitApi(
+        @Named("authRetrofit") retrofit: Retrofit
+    ): HabitApi {
+
+        return retrofit.create(HabitApi::class.java)
     }
 }
