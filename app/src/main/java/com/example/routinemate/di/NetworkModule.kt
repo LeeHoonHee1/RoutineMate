@@ -16,6 +16,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Named
 import javax.inject.Singleton
+import com.example.routinemate.data.remote.api.StatisticsApi
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -129,5 +130,15 @@ object NetworkModule {
     ): HabitApi {
 
         return retrofit.create(HabitApi::class.java)
+    }
+
+    // 통계 API 제공
+    @Provides
+    @Singleton
+    fun provideStatisticsApi(
+        @Named("authRetrofit") retrofit: Retrofit
+    ): StatisticsApi {
+
+        return retrofit.create(StatisticsApi::class.java)
     }
 }
