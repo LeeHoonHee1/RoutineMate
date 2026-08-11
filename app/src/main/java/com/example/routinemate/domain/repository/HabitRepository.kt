@@ -1,5 +1,6 @@
 package com.example.routinemate.domain.repository
 
+import com.example.routinemate.data.remote.dto.habit.HabitCompletionResponse
 import com.example.routinemate.data.remote.dto.habit.HabitResponse
 
 interface HabitRepository {
@@ -22,6 +23,16 @@ interface HabitRepository {
 
     // 습관 삭제
     suspend fun deleteHabit(
+        habitId: Long
+    )
+
+    // 오늘 습관 완료
+    suspend fun completeHabit(
+        habitId: Long
+    ): HabitCompletionResponse
+
+    // 오늘 습관 완료 취소
+    suspend fun cancelHabitCompletion(
         habitId: Long
     )
 }

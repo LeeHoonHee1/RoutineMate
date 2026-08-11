@@ -6,6 +6,7 @@ import com.example.routinemate.data.remote.dto.habit.HabitResponse
 import com.example.routinemate.data.remote.dto.habit.UpdateHabitRequest
 import com.example.routinemate.domain.repository.HabitRepository
 import javax.inject.Inject
+import com.example.routinemate.data.remote.dto.habit.HabitCompletionResponse
 
 class HabitRepositoryImpl @Inject constructor(
     private val remoteDataSource: HabitRemoteDataSource
@@ -53,5 +54,21 @@ class HabitRepositoryImpl @Inject constructor(
         habitId: Long
     ) {
         remoteDataSource.deleteHabit(habitId)
+    }
+
+    // 오늘 습관 완료
+    override suspend fun completeHabit(
+        habitId: Long
+    ): HabitCompletionResponse {
+
+        return remoteDataSource.completeHabit(habitId)
+    }
+
+    // 오늘 습관 완료 취소
+    override suspend fun cancelHabitCompletion(
+        habitId: Long
+    ) {
+
+        remoteDataSource.cancelHabitCompletion(habitId)
     }
 }

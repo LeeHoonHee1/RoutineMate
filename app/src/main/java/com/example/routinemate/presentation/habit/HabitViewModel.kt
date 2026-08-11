@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 @HiltViewModel
 class HabitViewModel @Inject constructor(
@@ -29,7 +30,6 @@ class HabitViewModel @Inject constructor(
 
         viewModelScope.launch {
 
-            // 로딩 시작
             _uiState.update {
                 it.copy(
                     isLoading = true,
@@ -39,13 +39,23 @@ class HabitViewModel @Inject constructor(
 
             try {
 
-                // 서버에서 습관 목록 조회
                 val habits = habitRepository.getHabits()
 
-                // 조회 성공
+                val completedCount = habits.count { habit ->
+                    habit.isCompletedToday
+                }
+
+                val completionRate = calculateCompletionRate(
+                    completedCount = completedCount,
+                    totalCount = habits.size
+                )
+
                 _uiState.update {
                     it.copy(
                         habits = habits,
+                        totalHabitCount = habits.size,
+                        completedHabitCount = completedCount,
+                        completionRate = completionRate,
                         isLoading = false
                     )
                 }
@@ -97,7 +107,6 @@ class HabitViewModel @Inject constructor(
         val title = uiState.value.title.trim()
         val description = uiState.value.description.trim()
 
-        // 입력값 검증
         val validationMessage = habitValidator.validate(
             title = title,
             description = description
@@ -116,7 +125,6 @@ class HabitViewModel @Inject constructor(
 
         viewModelScope.launch {
 
-            // 생성 요청 시작
             _uiState.update {
                 it.copy(
                     isLoading = true,
@@ -127,7 +135,6 @@ class HabitViewModel @Inject constructor(
 
             try {
 
-                // 서버에 습관 생성 요청
                 habitRepository.createHabit(
                     title = title,
                     description = description.ifBlank { null }
@@ -136,9 +143,21 @@ class HabitViewModel @Inject constructor(
                 // 생성 후 최신 목록 다시 조회
                 val habits = habitRepository.getHabits()
 
+                val completedCount = habits.count { habit ->
+                    habit.isCompletedToday
+                }
+
+                val completionRate = calculateCompletionRate(
+                    completedCount = completedCount,
+                    totalCount = habits.size
+                )
+
                 _uiState.update {
                     it.copy(
                         habits = habits,
+                        totalHabitCount = habits.size,
+                        completedHabitCount = completedCount,
+                        completionRate = completionRate,
                         title = "",
                         description = "",
                         isLoading = false,
@@ -179,15 +198,26 @@ class HabitViewModel @Inject constructor(
 
             try {
 
-                // 서버에 삭제 요청
                 habitRepository.deleteHabit(habitId)
 
                 // 삭제 후 최신 목록 다시 조회
                 val habits = habitRepository.getHabits()
 
+                val completedCount = habits.count { habit ->
+                    habit.isCompletedToday
+                }
+
+                val completionRate = calculateCompletionRate(
+                    completedCount = completedCount,
+                    totalCount = habits.size
+                )
+
                 _uiState.update {
                     it.copy(
                         habits = habits,
+                        totalHabitCount = habits.size,
+                        completedHabitCount = completedCount,
+                        completionRate = completionRate,
                         isLoading = false
                     )
                 }
@@ -237,7 +267,6 @@ class HabitViewModel @Inject constructor(
         val title = uiState.value.title.trim()
         val description = uiState.value.description.trim()
 
-        // 입력값 검증
         val validationMessage = habitValidator.validate(
             title = title,
             description = description
@@ -265,7 +294,6 @@ class HabitViewModel @Inject constructor(
 
             try {
 
-                // 서버에 수정 요청
                 habitRepository.updateHabit(
                     habitId = habitId,
                     title = title,
@@ -275,9 +303,21 @@ class HabitViewModel @Inject constructor(
                 // 수정 후 최신 목록 다시 조회
                 val habits = habitRepository.getHabits()
 
+                val completedCount = habits.count { habit ->
+                    habit.isCompletedToday
+                }
+
+                val completionRate = calculateCompletionRate(
+                    completedCount = completedCount,
+                    totalCount = habits.size
+                )
+
                 _uiState.update {
                     it.copy(
                         habits = habits,
+                        totalHabitCount = habits.size,
+                        completedHabitCount = completedCount,
+                        completionRate = completionRate,
                         title = "",
                         description = "",
                         editingHabitId = null,
@@ -315,5 +355,85 @@ class HabitViewModel @Inject constructor(
                 errorMessage = null
             )
         }
+    }
+
+    // 오늘 습관 완료 상태 토글
+    fun toggleHabitCompletion(
+        habitId: Long,
+        isCompletedToday: Boolean
+    ) {
+
+        viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    errorMessage = null
+                )
+            }
+
+            try {
+
+                if (isCompletedToday) {
+                    // 이미 완료된 Habit이면 완료 취소
+                    habitRepository.cancelHabitCompletion(habitId)
+                } else {
+                    // 아직 완료하지 않은 Habit이면 완료 처리
+                    habitRepository.completeHabit(habitId)
+                }
+
+                // 완료 상태가 바뀌었으므로 최신 목록 다시 조회
+                val habits = habitRepository.getHabits()
+
+                val completedCount = habits.count { habit ->
+                    habit.isCompletedToday
+                }
+
+                val completionRate = calculateCompletionRate(
+                    completedCount = completedCount,
+                    totalCount = habits.size
+                )
+
+                _uiState.update {
+                    it.copy(
+                        habits = habits,
+                        totalHabitCount = habits.size,
+                        completedHabitCount = completedCount,
+                        completionRate = completionRate,
+                        isLoading = false
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                val message = if (e is HttpException) {
+                    apiErrorParser.parseMessage(e)
+                        ?: "습관 완료 상태를 변경하지 못했습니다."
+                } else {
+                    "습관 완료 상태를 변경하지 못했습니다."
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = message
+                    )
+                }
+            }
+        }
+    }
+
+    // 오늘 습관 달성률 계산
+    private fun calculateCompletionRate(
+        completedCount: Int,
+        totalCount: Int
+    ): Int {
+
+        if (totalCount == 0) {
+            return 0
+        }
+
+        return (completedCount * 100.0 / totalCount)
+            .roundToInt()
     }
 }

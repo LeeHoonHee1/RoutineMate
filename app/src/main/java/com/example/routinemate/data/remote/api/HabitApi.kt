@@ -1,6 +1,7 @@
 package com.example.routinemate.data.remote.api
 
 import com.example.routinemate.data.remote.dto.habit.CreateHabitRequest
+import com.example.routinemate.data.remote.dto.habit.HabitCompletionResponse
 import com.example.routinemate.data.remote.dto.habit.HabitResponse
 import com.example.routinemate.data.remote.dto.habit.UpdateHabitRequest
 import retrofit2.http.Body
@@ -32,6 +33,18 @@ interface HabitApi {
     // 습관 삭제
     @DELETE("habits/{habitId}")
     suspend fun deleteHabit(
+        @Path("habitId") habitId: Long
+    )
+
+    // 오늘 습관 완료
+    @POST("habits/{habitId}/complete")
+    suspend fun completeHabit(
+        @Path("habitId") habitId: Long
+    ): HabitCompletionResponse
+
+    // 오늘 습관 완료 취소
+    @DELETE("habits/{habitId}/complete")
+    suspend fun cancelHabitCompletion(
         @Path("habitId") habitId: Long
     )
 }

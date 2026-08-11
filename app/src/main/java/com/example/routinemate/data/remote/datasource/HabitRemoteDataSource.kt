@@ -2,6 +2,7 @@ package com.example.routinemate.data.remote.datasource
 
 import com.example.routinemate.data.remote.api.HabitApi
 import com.example.routinemate.data.remote.dto.habit.CreateHabitRequest
+import com.example.routinemate.data.remote.dto.habit.HabitCompletionResponse
 import com.example.routinemate.data.remote.dto.habit.HabitResponse
 import com.example.routinemate.data.remote.dto.habit.UpdateHabitRequest
 import javax.inject.Inject
@@ -27,6 +28,7 @@ class HabitRemoteDataSource @Inject constructor(
         habitId: Long,
         request: UpdateHabitRequest
     ): HabitResponse {
+
         return habitApi.updateHabit(
             habitId = habitId,
             request = request
@@ -38,5 +40,21 @@ class HabitRemoteDataSource @Inject constructor(
         habitId: Long
     ) {
         habitApi.deleteHabit(habitId)
+    }
+
+    // 오늘 습관 완료
+    suspend fun completeHabit(
+        habitId: Long
+    ): HabitCompletionResponse {
+
+        return habitApi.completeHabit(habitId)
+    }
+
+    // 오늘 습관 완료 취소
+    suspend fun cancelHabitCompletion(
+        habitId: Long
+    ) {
+
+        habitApi.cancelHabitCompletion(habitId)
     }
 }

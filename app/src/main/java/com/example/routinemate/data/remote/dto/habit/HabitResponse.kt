@@ -17,6 +17,9 @@ data class HabitResponse(
     // 활성화 여부
     val isActive: Boolean,
 
+    // 오늘 완료했는지 여부
+    val isCompletedToday: Boolean,
+
     // 서버에서 받은 생성 시간
     val createdAt: String
 )

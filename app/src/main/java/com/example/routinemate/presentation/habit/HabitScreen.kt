@@ -24,6 +24,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.layout.fillMaxWidth
 
 @Composable
 fun HabitScreen(
@@ -50,6 +56,25 @@ fun HabitScreen(
 
         Text(
             text = "내 습관"
+        )
+
+        Text(
+            text = "오늘 ${uiState.completedHabitCount} / ${uiState.totalHabitCount} 완료",
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Text(
+            text = "오늘 달성률 ${uiState.completionRate}%",
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        LinearProgressIndicator(
+            progress = {
+                uiState.completionRate / 100f
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
         )
 
         // 습관 이름 입력
@@ -155,20 +180,43 @@ fun HabitScreen(
 
                     Column {
 
-                        Text(
-                            text = habit.title
-                        )
+                        Row {
 
-                        if (!habit.description.isNullOrBlank()) {
-                            Text(
-                                text = habit.description
+                            // 오늘 완료 여부 체크
+                            Checkbox(
+                                checked = habit.isCompletedToday,
+                                onCheckedChange = {
+                                    viewModel.toggleHabitCompletion(
+                                        habitId = habit.id,
+                                        isCompletedToday = habit.isCompletedToday
+                                    )
+                                },
+                                enabled = !uiState.isLoading
                             )
+
+                            Spacer(
+                                modifier = Modifier.width(8.dp)
+                            )
+
+                            Column {
+
+                                Text(
+                                    text = habit.title
+                                )
+
+                                if (!habit.description.isNullOrBlank()) {
+                                    Text(
+                                        text = habit.description
+                                    )
+                                }
+                            }
                         }
 
                         Button(
                             onClick = {
                                 viewModel.startEditing(habit.id)
                             },
+                            enabled = !uiState.isLoading,
                             modifier = Modifier.padding(top = 8.dp)
                         ) {
                             Text("수정")
@@ -176,9 +224,10 @@ fun HabitScreen(
 
                         Button(
                             onClick = {
-                                // 바로 삭제하지 않고 확인 다이얼로그 열기
+                                // 삭제 확인 다이얼로그 열기
                                 deleteHabitId = habit.id
                             },
+                            enabled = !uiState.isLoading,
                             modifier = Modifier.padding(top = 8.dp)
                         ) {
                             Text("삭제")
