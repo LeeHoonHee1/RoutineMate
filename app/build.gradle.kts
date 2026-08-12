@@ -72,6 +72,8 @@ dependencies {
 
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
+    implementation("androidx.compose.material:material-icons-extended")
+
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

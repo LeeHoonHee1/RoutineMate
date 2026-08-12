@@ -1,8 +1,10 @@
 package com.example.routinemate.presentation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
@@ -66,6 +68,7 @@ fun RoutineMateApp() {
             navController.navigate(
                 AppRoute.Login.route
             ) {
+
                 popUpTo(
                     navController.graph
                         .findStartDestination()
@@ -86,11 +89,23 @@ fun RoutineMateApp() {
                 currentRoute != AppRoute.Register.route
 
     Scaffold(
+        containerColor =
+            MaterialTheme.colorScheme.background,
+
         bottomBar = {
 
             if (showBottomBar) {
 
-                NavigationBar {
+                NavigationBar(
+                    containerColor =
+                        MaterialTheme.colorScheme.surface,
+
+                    contentColor =
+                        MaterialTheme.colorScheme.onSurface,
+
+                    tonalElevation =
+                        NavigationBarDefaults.Elevation
+                ) {
 
                     bottomNavItems.forEach { item ->
 
@@ -119,16 +134,37 @@ fun RoutineMateApp() {
                                 }
                             },
 
+                            // 실제 Material Icon 사용
                             icon = {
-                                Text(item.iconText)
+
+                                Icon(
+                                    imageVector =
+                                        if (isSelected) {
+                                            item.selectedIcon
+                                        } else {
+                                            item.unselectedIcon
+                                        },
+
+                                    contentDescription =
+                                        item.label
+                                )
                             },
 
                             label = {
-                                Text(item.label)
+
+                                Text(
+                                    text = item.label,
+                                    style =
+                                        MaterialTheme.typography.labelMedium
+                                )
                             },
+
+                            alwaysShowLabel = true,
 
                             colors =
                                 NavigationBarItemDefaults.colors(
+
+                                    // 선택된 탭
                                     selectedIconColor =
                                         MaterialTheme.colorScheme.primary,
 
@@ -136,13 +172,17 @@ fun RoutineMateApp() {
                                         MaterialTheme.colorScheme.primary,
 
                                     indicatorColor =
-                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme
+                                            .primaryContainer,
 
+                                    // 선택되지 않은 탭
                                     unselectedIconColor =
-                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                        MaterialTheme.colorScheme
+                                            .onSurfaceVariant,
 
                                     unselectedTextColor =
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                        MaterialTheme.colorScheme
+                                            .onSurfaceVariant
                                 )
                         )
                     }
@@ -157,7 +197,9 @@ fun RoutineMateApp() {
             // 로그인 여부에 따라 시작 화면 전달
             startDestination = startDestination,
 
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(
+                innerPadding
+            )
         )
     }
 }

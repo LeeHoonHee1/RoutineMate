@@ -1,26 +1,32 @@
 package com.example.routinemate.presentation.profile
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.example.routinemate.presentation.auth.AuthViewModel
-import androidx.compose.material3.Button
+import com.example.routinemate.ui.theme.RoutineDimens
 
 @Composable
 fun ProfileScreen(
     viewModel: AuthViewModel
 ) {
-    // ViewModel 상태 관찰
+
     val uiState by viewModel.uiState.collectAsState()
 
     // 프로필 화면 진입 시 사용자 정보 조회
@@ -31,47 +37,189 @@ fun ProfileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(RoutineDimens.ScreenPadding)
     ) {
 
+        // 화면 제목
         Text(
-            text = "마이페이지"
+            text = "마이",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(
+            modifier = Modifier.height(
+                RoutineDimens.SmallSpacing
+            )
+        )
+
+        Text(
+            text = "내 계정 정보를 확인해보세요.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(
+            modifier = Modifier.height(
+                RoutineDimens.SectionSpacing
+            )
         )
 
         if (uiState.isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        }
 
-        uiState.currentUser?.let { user ->
-
-            Text(
-                text = "닉네임: ${user.nickname}",
-                modifier = Modifier.padding(top = 24.dp)
-            )
-
-            Text(
-                text = "이메일: ${user.email}",
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Button(
-                onClick = {
-                    viewModel.logout()
-                },
-                modifier = Modifier.padding(top = 24.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("로그아웃")
+
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(
+                    modifier = Modifier.height(
+                        RoutineDimens.ContentSpacing
+                    )
+                )
+
+                Text(
+                    text = "프로필 정보를 불러오고 있어요",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+        } else {
+
+            uiState.currentUser?.let { user ->
+
+                // 프로필 카드
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(
+                            RoutineDimens.CardPadding
+                        )
+                    ) {
+
+                        Text(
+                            text = user.nickname,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color =
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.SmallSpacing
+                            )
+                        )
+
+                        Text(
+                            text = user.email,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(
+                        RoutineDimens.SectionSpacing
+                    )
+                )
+
+                // 계정 영역
+                Text(
+                    text = "계정",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(
+                    modifier = Modifier.height(
+                        RoutineDimens.ContentSpacing
+                    )
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(
+                            RoutineDimens.CardPadding
+                        )
+                    ) {
+
+                        Text(
+                            text = "로그인 이메일",
+                            style = MaterialTheme.typography.bodySmall,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.SmallSpacing
+                            )
+                        )
+
+                        Text(
+                            text = user.email,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(
+                        RoutineDimens.SectionSpacing
+                    )
+                )
+
+                // 로그아웃
+                TextButton(
+                    onClick = {
+                        viewModel.logout()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    Text(
+                        text = "로그아웃",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
 
         uiState.errorMessage?.let { message ->
+
+            Spacer(
+                modifier = Modifier.height(
+                    RoutineDimens.ItemSpacing
+                )
+            )
+
             Text(
                 text = message,
-                modifier = Modifier.padding(top = 16.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
             )
         }
     }

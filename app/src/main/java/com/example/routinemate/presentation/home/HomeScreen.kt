@@ -1,13 +1,21 @@
 package com.example.routinemate.presentation.home
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,14 +24,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Checkbox
+import com.example.routinemate.ui.theme.RoutineAccentOrange
+import com.example.routinemate.ui.theme.RoutineDimens
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import java.time.LocalTime
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 
 @Composable
 fun HomeScreen(
@@ -37,114 +51,283 @@ fun HomeScreen(
         viewModel.loadHomeData()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            RoutineDimens.ScreenPadding
+        ),
+        verticalArrangement = Arrangement.spacedBy(
+            RoutineDimens.SectionSpacing
+        )
     ) {
 
-        Text(
-            text = "홈"
-        )
+        // 상단 인사말
+        item {
 
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        if (uiState.isLoading) {
-
-            // Home 데이터 로딩 중
-            CircularProgressIndicator()
-
-        } else if (uiState.errorMessage != null) {
-
-            // Home 데이터 조회 실패
             Column {
 
                 Text(
-                    text = "홈 정보를 불러오지 못했습니다."
+                    text = getGreetingMessage(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Spacer(
-                    modifier = Modifier.height(8.dp)
+                    modifier = Modifier.height(
+                        RoutineDimens.SmallSpacing
+                    )
                 )
 
                 Text(
-                    text = uiState.errorMessage ?: ""
+                    text = "오늘도 루틴을 이어가 볼까요?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        // 로딩 상태
+        if (uiState.isLoading) {
+
+            item {
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                RoutineDimens.CardPadding
+                            ),
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+                    ) {
+
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.ContentSpacing
+                            )
+                        )
+
+                        Text(
+                            text = "오늘의 루틴을 불러오고 있어요",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+        } else if (uiState.errorMessage != null) {
+
+            // 오류 상태
+            item {
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(
+                            RoutineDimens.CardPadding
+                        )
+                    ) {
+
+                        Text(
+                            text = "홈 정보를 불러오지 못했어요",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.ContentSpacing
+                            )
+                        )
+
+                        Text(
+                            text = uiState.errorMessage ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
         } else {
 
-            // 오늘 진행 상황
-            Text(
-                text = "오늘의 진행"
-            )
+            // 오늘의 달성률
+            item {
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
 
-            Text(
-                text = "${uiState.completedHabitCount} / " +
-                        "${uiState.totalHabitCount} 완료"
-            )
+                    Column(
+                        modifier = Modifier.padding(
+                            RoutineDimens.CardPadding
+                        )
+                    ) {
 
-            Text(
-                text = "오늘 달성률 ${uiState.todayCompletionRate}%"
-            )
+                        Text(
+                            text = "오늘의 달성률",
+                            style = MaterialTheme.typography.titleMedium,
+                            color =
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                        )
 
-            LinearProgressIndicator(
-                progress = {
-                    uiState.todayCompletionRate / 100f
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            )
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.ContentSpacing
+                            )
+                        )
 
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
+                        Text(
+                            text = "${uiState.todayCompletionRate}%",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = RoutineAccentOrange
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.ContentSpacing
+                            )
+                        )
+
+                        LinearProgressIndicator(
+                            progress = {
+                                uiState.todayCompletionRate / 100f
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surface
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.ContentSpacing
+                            )
+                        )
+
+                        Text(
+                            text =
+                                "${uiState.totalHabitCount}개 중 " +
+                                        "${uiState.completedHabitCount}개 완료",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
 
             // 오늘의 루틴 제목
-            Text(
-                text = "오늘의 루틴"
-            )
+            item {
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+                Text(
+                    text = "오늘의 루틴",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
 
-            // 오늘 Habit이 없을 때
+            // Habit이 없을 때
             if (uiState.todayHabits.isEmpty()) {
 
-                Column {
+                item {
 
-                    Text(
-                        text = "아직 등록된 습관이 없습니다."
-                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(
+                            containerColor =
+                                MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
 
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
+                        Column(
+                            modifier = Modifier.padding(
+                                RoutineDimens.CardPadding
+                            )
+                        ) {
 
-                    Text(
-                        text = "습관 탭에서 첫 루틴을 만들어보세요."
-                    )
+                            Text(
+                                text = "아직 등록된 루틴이 없어요",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(
+                                    RoutineDimens.SmallSpacing
+                                )
+                            )
+
+                            Text(
+                                text = "습관 탭에서 첫 루틴을 만들어보세요.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color =
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
 
             } else {
 
-                // 오늘 Habit 목록 표시
-                LazyColumn {
+                // 오늘 Habit 목록
+                items(
+                    items = uiState.todayHabits,
+                    key = { habit ->
+                        habit.id
+                    }
+                ) { habit ->
 
-                    items(uiState.todayHabits) { habit ->
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor =
+                                if (habit.isCompletedToday) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                }
+                        )
+                    ) {
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp)
+                                .padding(
+                                    RoutineDimens.CardPadding
+                                ),
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
 
                             Checkbox(
@@ -152,65 +335,223 @@ fun HomeScreen(
                                 onCheckedChange = {
                                     viewModel.toggleHabitCompletion(
                                         habitId = habit.id,
-                                        isCompletedToday = habit.isCompletedToday
+                                        isCompletedToday =
+                                            habit.isCompletedToday
                                     )
                                 },
                                 enabled = !uiState.isLoading
                             )
 
                             Spacer(
-                                modifier = Modifier.width(8.dp)
+                                modifier = Modifier.width(
+                                    RoutineDimens.ItemSpacing
+                                )
                             )
 
-                            Column {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
 
                                 Text(
-                                    text = habit.title
+                                    text = habit.title,
+                                    style =
+                                        MaterialTheme.typography.titleMedium,
+                                    color =
+                                        if (habit.isCompletedToday) {
+                                            MaterialTheme.colorScheme
+                                                .onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        }
                                 )
 
                                 if (!habit.description.isNullOrBlank()) {
+
+                                    Spacer(
+                                        modifier = Modifier.height(
+                                            RoutineDimens.SmallSpacing
+                                        )
+                                    )
+
                                     Text(
-                                        text = habit.description
+                                        text = habit.description,
+                                        style =
+                                            MaterialTheme.typography.bodyMedium,
+                                        color =
+                                            if (habit.isCompletedToday) {
+                                                MaterialTheme.colorScheme
+                                                    .onPrimaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme
+                                                    .onSurfaceVariant
+                                            }
                                     )
                                 }
                             }
                         }
                     }
+                }
+            }
 
-                    // 최근 7일 성과
-                    item {
+            // 최근 성과 제목
+            item {
 
-                        Spacer(
-                            modifier = Modifier.height(24.dp)
+                Text(
+                    text = "최근 성과",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            // 최근 성과 카드
+            item {
+
+                val bestDay = uiState.bestDay
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(
+                        RoutineDimens.ItemSpacing
+                    )
+                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(
+                            RoutineDimens.ItemSpacing
                         )
+                    ) {
 
-                        Text(
-                            text = "최근 성과"
-                        )
+                        // 7일 평균
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor =
+                                    MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
 
-                        Spacer(
-                            modifier = Modifier.height(8.dp)
-                        )
+                            Column(
+                                modifier = Modifier.padding(
+                                    RoutineDimens.CardPadding
+                                )
+                            ) {
 
-                        Text(
-                            text = "7일 평균 달성률 " +
-                                    "${uiState.weeklyAverageCompletionRate}%"
-                        )
+                                Text(
+                                    text = "7일 평균",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color =
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                )
 
-                        Text(
-                            text = "총 완료 횟수 " +
-                                    "${uiState.weeklyTotalCompletedCount}회"
-                        )
+                                Spacer(
+                                    modifier = Modifier.height(
+                                        RoutineDimens.SmallSpacing
+                                    )
+                                )
 
-                        val bestDay = uiState.bestDay
-
-                        Text(
-                            text = if (bestDay != null) {
-                                "가장 잘한 날 ${formatHomeDate(bestDay)}"
-                            } else {
-                                "가장 잘한 날 없음"
+                                Text(
+                                    text =
+                                        "${uiState.weeklyAverageCompletionRate}%",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = RoutineAccentOrange
+                                )
                             }
+                        }
+
+                        // 총 완료
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor =
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+
+                            Column(
+                                modifier = Modifier.padding(
+                                    RoutineDimens.CardPadding
+                                )
+                            ) {
+
+                                Text(
+                                    text = "총 완료",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color =
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(
+                                        RoutineDimens.SmallSpacing
+                                    )
+                                )
+
+                                Text(
+                                    text =
+                                        "${uiState.weeklyTotalCompletedCount}회",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    // Best Day
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(
+                            containerColor =
+                                MaterialTheme.colorScheme.primaryContainer
                         )
+                    ) {
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    RoutineDimens.CardPadding
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+
+                            Column {
+
+                                Text(
+                                    text = "가장 잘한 날",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color =
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.height(
+                                        RoutineDimens.SmallSpacing
+                                    )
+                                )
+
+                                Text(
+                                    text = "최근 7일 기준",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color =
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+
+                            Text(
+                                text = if (bestDay != null) {
+                                    formatHomeDate(bestDay)
+                                } else {
+                                    "-"
+                                },
+                                style = MaterialTheme.typography.titleLarge,
+                                color =
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
             }
@@ -231,4 +572,22 @@ private fun formatHomeDate(
     )
 
     return "${date.monthValue}/${date.dayOfMonth} ($dayOfWeek)"
+}
+
+// 현재 시간대에 맞는 인사말 반환
+private fun getGreetingMessage(): String {
+
+    val currentHour = LocalTime.now().hour
+
+    return when (currentHour) {
+
+        // 오전 5시 ~ 오전 11시 59분
+        in 5..11 -> "좋은 아침이에요 👋"
+
+        // 오후 12시 ~ 오후 5시 59분
+        in 12..17 -> "좋은 오후예요 👋"
+
+        // 오후 6시 ~ 다음 날 오전 4시 59분
+        else -> "좋은 저녁이에요 👋"
+    }
 }
