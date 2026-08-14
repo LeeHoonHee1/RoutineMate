@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import com.example.routinemate.presentation.auth.AuthViewModel
 import com.example.routinemate.presentation.auth.LoginScreen
 import com.example.routinemate.presentation.auth.RegisterScreen
+import com.example.routinemate.presentation.friend.FriendScreen
 import com.example.routinemate.presentation.habit.HabitScreen
 import com.example.routinemate.presentation.home.HomeScreen
 import com.example.routinemate.presentation.profile.ProfileScreen
@@ -36,8 +37,12 @@ fun AppNavHost(
 
                 // 로그인 성공 시 Home으로 이동
                 onLoginSuccess = {
-                    navController.navigate(AppRoute.Home.route) {
-                        popUpTo(AppRoute.Login.route) {
+                    navController.navigate(
+                        AppRoute.Home.route
+                    ) {
+                        popUpTo(
+                            AppRoute.Login.route
+                        ) {
                             inclusive = true
                         }
                     }
@@ -83,8 +88,20 @@ fun AppNavHost(
             val viewModel: AuthViewModel = hiltViewModel()
 
             ProfileScreen(
-                viewModel = viewModel
+                viewModel = viewModel,
+
+                // 친구 화면으로 이동
+                onFriendClick = {
+                    navController.navigate(
+                        AppRoute.Friend.route
+                    )
+                }
             )
+        }
+
+        // 친구 화면
+        composable(route = AppRoute.Friend.route) {
+            FriendScreen()
         }
     }
 }

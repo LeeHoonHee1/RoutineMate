@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,7 +23,8 @@ import com.example.routinemate.ui.theme.RoutineDimens
 
 @Composable
 fun ProfileScreen(
-    viewModel: AuthViewModel
+    viewModel: AuthViewModel,
+    onFriendClick: () -> Unit
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
@@ -127,6 +127,63 @@ fun ProfileScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color =
                                 MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(
+                        RoutineDimens.SectionSpacing
+                    )
+                )
+
+                // 활동 영역
+                Text(
+                    text = "활동",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(
+                    modifier = Modifier.height(
+                        RoutineDimens.ContentSpacing
+                    )
+                )
+
+                // 친구 화면 진입
+                Card(
+                    onClick = onFriendClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(
+                            RoutineDimens.CardPadding
+                        )
+                    ) {
+
+                        Text(
+                            text = "친구",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(
+                                RoutineDimens.SmallSpacing
+                            )
+                        )
+
+                        Text(
+                            text = "친구 목록과 요청을 관리해보세요.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

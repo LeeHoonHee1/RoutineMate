@@ -1,7 +1,9 @@
 package com.example.routinemate.di
 
 import com.example.routinemate.data.remote.api.AuthApi
+import com.example.routinemate.data.remote.api.FriendApi
 import com.example.routinemate.data.remote.api.HabitApi
+import com.example.routinemate.data.remote.api.StatisticsApi
 import com.example.routinemate.data.remote.api.TokenApi
 import com.example.routinemate.data.remote.auth.TokenAuthenticator
 import com.example.routinemate.data.remote.interceptor.AuthInterceptor
@@ -16,7 +18,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Named
 import javax.inject.Singleton
-import com.example.routinemate.data.remote.api.StatisticsApi
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -53,7 +54,6 @@ object NetworkModule {
     @Named("tokenOkHttpClient")
     fun provideTokenOkHttpClient(): OkHttpClient {
 
-        // Authenticator를 넣지 않음
         return OkHttpClient.Builder()
             .build()
     }
@@ -126,7 +126,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideHabitApi(
-        @Named("authRetrofit") retrofit: Retrofit
+        @Named("authRetrofit")
+        retrofit: Retrofit
     ): HabitApi {
 
         return retrofit.create(HabitApi::class.java)
@@ -136,9 +137,21 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideStatisticsApi(
-        @Named("authRetrofit") retrofit: Retrofit
+        @Named("authRetrofit")
+        retrofit: Retrofit
     ): StatisticsApi {
 
         return retrofit.create(StatisticsApi::class.java)
+    }
+
+    // Friend API 제공
+    @Provides
+    @Singleton
+    fun provideFriendApi(
+        @Named("authRetrofit")
+        retrofit: Retrofit
+    ): FriendApi {
+
+        return retrofit.create(FriendApi::class.java)
     }
 }

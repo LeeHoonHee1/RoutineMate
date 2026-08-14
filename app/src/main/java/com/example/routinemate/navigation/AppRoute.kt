@@ -28,4 +28,9 @@ sealed interface AppRoute {
     data object Profile : AppRoute {
         override val route: String = "profile"
     }
+
+    // 친구 화면
+    data object Friend : AppRoute {
+        override val route: String = "friend"
+    }
 }
