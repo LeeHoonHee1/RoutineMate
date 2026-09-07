@@ -14,6 +14,7 @@ import com.example.routinemate.presentation.habit.HabitScreen
 import com.example.routinemate.presentation.home.HomeScreen
 import com.example.routinemate.presentation.profile.ProfileScreen
 import com.example.routinemate.presentation.statistics.StatisticsScreen
+import com.example.routinemate.presentation.challenge.ChallengeScreen
 
 @Composable
 fun AppNavHost(
@@ -71,8 +72,15 @@ fun AppNavHost(
             )
         }
 
-        composable(route = AppRoute.Home.route) {
-            HomeScreen()
+        composable(AppRoute.Home.route) {
+
+            HomeScreen(
+                onChallengeClick = {
+                    navController.navigate(
+                        AppRoute.Challenge.route
+                    )
+                }
+            )
         }
 
         composable(route = AppRoute.Habit.route) {
@@ -102,6 +110,11 @@ fun AppNavHost(
         // 친구 화면
         composable(route = AppRoute.Friend.route) {
             FriendScreen()
+        }
+
+        // 챌린지 화면
+        composable(AppRoute.Challenge.route) {
+            ChallengeScreen()
         }
     }
 }

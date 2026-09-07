@@ -33,4 +33,8 @@ sealed interface AppRoute {
     data object Friend : AppRoute {
         override val route: String = "friend"
     }
+
+    data object Challenge : AppRoute {
+        override val route = "challenge"
+    }
 }

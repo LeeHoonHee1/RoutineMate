@@ -1,12 +1,15 @@
 package com.example.routinemate.presentation.home
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,12 +17,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -27,21 +32,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routinemate.ui.theme.RoutineAccentOrange
 import com.example.routinemate.ui.theme.RoutineDimens
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.TextStyle
 import java.util.Locale
-import java.time.LocalTime
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onChallengeClick: () -> Unit
 ) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -389,6 +387,69 @@ fun HomeScreen(
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            // 챌린지 진입 카드
+            item {
+
+                Card(
+                    onClick = onChallengeClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                RoutineDimens.CardPadding
+                            ),
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween
+                    ) {
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+
+                            Text(
+                                text = "함께하는 챌린지",
+                                style =
+                                    MaterialTheme.typography.titleMedium,
+                                color =
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(
+                                    RoutineDimens.SmallSpacing
+                                )
+                            )
+
+                            Text(
+                                text = "친구와 함께 목표에 도전해보세요.",
+                                style =
+                                    MaterialTheme.typography.bodyMedium,
+                                color =
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+
+                        Text(
+                            text = "보기",
+                            style =
+                                MaterialTheme.typography.labelLarge,
+                            color =
+                                MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }

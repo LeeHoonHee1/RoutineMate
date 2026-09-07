@@ -7,6 +7,7 @@ import com.example.routinemate.data.remote.api.StatisticsApi
 import com.example.routinemate.data.remote.api.TokenApi
 import com.example.routinemate.data.remote.auth.TokenAuthenticator
 import com.example.routinemate.data.remote.interceptor.AuthInterceptor
+import com.example.routinemate.data.remote.api.ChallengeApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -153,5 +154,16 @@ object NetworkModule {
     ): FriendApi {
 
         return retrofit.create(FriendApi::class.java)
+    }
+
+    // Challenge API 제공
+    @Provides
+    @Singleton
+    fun provideChallengeApi(
+        @Named("authRetrofit")
+        retrofit: Retrofit
+    ): ChallengeApi {
+
+        return retrofit.create(ChallengeApi::class.java)
     }
 }

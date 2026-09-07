@@ -8,6 +8,8 @@ import com.example.routinemate.domain.repository.AuthRepository
 import com.example.routinemate.domain.repository.FriendRepository
 import com.example.routinemate.domain.repository.HabitRepository
 import com.example.routinemate.domain.repository.StatisticsRepository
+import com.example.routinemate.data.repository.ChallengeRepositoryImpl
+import com.example.routinemate.domain.repository.ChallengeRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -45,4 +47,11 @@ abstract class RepositoryModule {
     abstract fun bindFriendRepository(
         friendRepositoryImpl: FriendRepositoryImpl
     ): FriendRepository
+
+    // 챌린지 Repository 바인딩
+    @Binds
+    @Singleton
+    abstract fun bindChallengeRepository(
+        challengeRepositoryImpl: ChallengeRepositoryImpl
+    ): ChallengeRepository
 }
