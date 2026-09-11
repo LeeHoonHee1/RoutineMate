@@ -19,6 +19,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Named
 import javax.inject.Singleton
+import com.example.routinemate.data.remote.api.ProfileApi
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -165,5 +166,17 @@ object NetworkModule {
     ): ChallengeApi {
 
         return retrofit.create(ChallengeApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideProfileApi(
+        @Named("authRetrofit")
+        authRetrofit: Retrofit
+    ): ProfileApi {
+
+        return authRetrofit.create(
+            ProfileApi::class.java
+        )
     }
 }

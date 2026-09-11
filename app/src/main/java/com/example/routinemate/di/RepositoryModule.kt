@@ -15,6 +15,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.example.routinemate.data.repository.ProfileRepositoryImpl
+import com.example.routinemate.domain.repository.ProfileRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -54,4 +56,10 @@ abstract class RepositoryModule {
     abstract fun bindChallengeRepository(
         challengeRepositoryImpl: ChallengeRepositoryImpl
     ): ChallengeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProfileRepository(
+        impl: ProfileRepositoryImpl
+    ): ProfileRepository
 }

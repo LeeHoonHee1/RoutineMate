@@ -4,20 +4,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.routinemate.presentation.auth.AuthViewModel
 import com.example.routinemate.presentation.auth.LoginScreen
 import com.example.routinemate.presentation.auth.RegisterScreen
+import com.example.routinemate.presentation.challenge.ChallengeScreen
+import com.example.routinemate.presentation.challenge.detail.ChallengeDetailScreen
 import com.example.routinemate.presentation.friend.FriendScreen
 import com.example.routinemate.presentation.habit.HabitScreen
 import com.example.routinemate.presentation.home.HomeScreen
 import com.example.routinemate.presentation.profile.ProfileScreen
 import com.example.routinemate.presentation.statistics.StatisticsScreen
-import com.example.routinemate.presentation.challenge.ChallengeScreen
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import com.example.routinemate.presentation.challenge.detail.ChallengeDetailScreen
 
 @Composable
 fun AppNavHost(
@@ -32,18 +32,23 @@ fun AppNavHost(
         modifier = modifier
     ) {
 
-        composable(route = AppRoute.Login.route) {
+        // 로그인
+        composable(
+            route = AppRoute.Login.route
+        ) {
 
-            val viewModel: AuthViewModel = hiltViewModel()
+            val viewModel: AuthViewModel =
+                hiltViewModel()
 
             LoginScreen(
                 viewModel = viewModel,
 
-                // 로그인 성공 시 Home으로 이동
                 onLoginSuccess = {
+
                     navController.navigate(
                         AppRoute.Home.route
                     ) {
+
                         popUpTo(
                             AppRoute.Login.route
                         ) {
@@ -52,8 +57,8 @@ fun AppNavHost(
                     }
                 },
 
-                // 회원가입 화면으로 이동
                 onRegisterClick = {
+
                     navController.navigate(
                         AppRoute.Register.route
                     )
@@ -61,24 +66,31 @@ fun AppNavHost(
             )
         }
 
-        composable(route = AppRoute.Register.route) {
+        // 회원가입
+        composable(
+            route = AppRoute.Register.route
+        ) {
 
-            val viewModel: AuthViewModel = hiltViewModel()
+            val viewModel: AuthViewModel =
+                hiltViewModel()
 
             RegisterScreen(
                 viewModel = viewModel,
 
-                // 회원가입 성공 후 로그인으로 복귀
                 onSignupSuccess = {
                     navController.popBackStack()
                 }
             )
         }
 
-        composable(AppRoute.Home.route) {
+        // 홈
+        composable(
+            route = AppRoute.Home.route
+        ) {
 
             HomeScreen(
                 onChallengeClick = {
+
                     navController.navigate(
                         AppRoute.Challenge.route
                     )
@@ -86,36 +98,87 @@ fun AppNavHost(
             )
         }
 
-        composable(route = AppRoute.Habit.route) {
+        // 습관
+        composable(
+            route = AppRoute.Habit.route
+        ) {
+
             HabitScreen()
         }
 
-        composable(route = AppRoute.Statistics.route) {
+        // 통계
+        composable(
+            route = AppRoute.Statistics.route
+        ) {
+
             StatisticsScreen()
         }
 
-        composable(route = AppRoute.Profile.route) {
+        // 프로필
+        composable(
+            route = AppRoute.Profile.route
+        ) {
 
-            val viewModel: AuthViewModel = hiltViewModel()
+            val authViewModel: AuthViewModel =
+                hiltViewModel()
 
             ProfileScreen(
-                viewModel = viewModel,
 
-                // 친구 화면으로 이동
+                // 습관 화면
+                onHabitClick = {
+
+                    navController.navigate(
+                        AppRoute.Habit.route
+                    )
+                },
+
+                // 친구 화면
                 onFriendClick = {
+
                     navController.navigate(
                         AppRoute.Friend.route
                     )
+                },
+
+                // 챌린지 화면
+                onChallengeClick = {
+
+                    navController.navigate(
+                        AppRoute.Challenge.route
+                    )
+                },
+
+                // 로그아웃
+                onLogout = {
+
+                    authViewModel.logout()
+
+                    navController.navigate(
+                        AppRoute.Login.route
+                    ) {
+
+                        popUpTo(
+                            AppRoute.Home.route
+                        ) {
+                            inclusive = true
+                        }
+                    }
                 }
             )
         }
 
-        // 친구 화면
-        composable(route = AppRoute.Friend.route) {
+        // 친구
+        composable(
+            route = AppRoute.Friend.route
+        ) {
+
             FriendScreen()
         }
 
-        composable(AppRoute.Challenge.route) {
+        // 챌린지
+        composable(
+            route = AppRoute.Challenge.route
+        ) {
 
             ChallengeScreen(
                 onChallengeClick = { challengeId ->
@@ -129,6 +192,7 @@ fun AppNavHost(
             )
         }
 
+        // 챌린지 상세
         composable(
             route = AppRoute.ChallengeDetail.route,
             arguments = listOf(
