@@ -5,36 +5,45 @@ sealed interface AppRoute {
     val route: String
 
     data object Login : AppRoute {
-        override val route: String = "login"
+        override val route = "login"
     }
 
-    // 회원가입 화면
     data object Register : AppRoute {
-        override val route: String = "register"
+        override val route = "register"
     }
 
     data object Home : AppRoute {
-        override val route: String = "home"
+        override val route = "home"
     }
 
     data object Habit : AppRoute {
-        override val route: String = "habit"
+        override val route = "habit"
     }
 
     data object Statistics : AppRoute {
-        override val route: String = "statistics"
+        override val route = "statistics"
     }
 
     data object Profile : AppRoute {
-        override val route: String = "profile"
+        override val route = "profile"
     }
 
-    // 친구 화면
     data object Friend : AppRoute {
-        override val route: String = "friend"
+        override val route = "friend"
     }
 
     data object Challenge : AppRoute {
         override val route = "challenge"
+    }
+
+    data object ChallengeDetail : AppRoute {
+        override val route =
+            "challenge_detail/{challengeId}"
+
+        fun createRoute(
+            challengeId: Long
+        ): String {
+            return "challenge_detail/$challengeId"
+        }
     }
 }

@@ -1,7 +1,11 @@
 package com.example.routinemate.domain.repository
 
+import com.example.routinemate.data.remote.dto.challenge.ChallengeDetailResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeInvitationResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeMemberResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeParticipantProgressResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeProgressResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeRecordResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeResponse
 import com.example.routinemate.data.remote.dto.challenge.CreateChallengeRequest
 
@@ -40,4 +44,29 @@ interface ChallengeRepository {
     suspend fun getChallengeMembers(
         challengeId: Long
     ): List<ChallengeMemberResponse>
+
+    // 내 진행률 조회
+    suspend fun getMyProgress(
+        challengeId: Long
+    ): ChallengeProgressResponse
+
+    // 참여자 진행 현황 조회
+    suspend fun getParticipantProgress(
+        challengeId: Long
+    ): List<ChallengeParticipantProgressResponse>
+
+    // 챌린지 상세 조회
+    suspend fun getChallengeDetail(
+        challengeId: Long
+    ): ChallengeDetailResponse
+
+    // 오늘 챌린지 완료
+    suspend fun completeChallenge(
+        challengeId: Long
+    ): ChallengeRecordResponse
+
+    // 오늘 챌린지 완료 취소
+    suspend fun cancelChallengeCompletion(
+        challengeId: Long
+    )
 }

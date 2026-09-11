@@ -33,6 +33,7 @@ import com.example.routinemate.ui.theme.RoutineDimens
 
 @Composable
 fun ChallengeScreen(
+    onChallengeClick: (Long) -> Unit,
     viewModel: ChallengeViewModel = hiltViewModel()
 ) {
 
@@ -282,15 +283,17 @@ fun ChallengeScreen(
                 ) { challenge ->
 
                     Card(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        shape =
-                            MaterialTheme.shapes.medium,
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    MaterialTheme.colorScheme.surfaceVariant
+                        onClick = {
+                            onChallengeClick(
+                                challenge.id
                             )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(
+                            containerColor =
+                                MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
 
                         Column(

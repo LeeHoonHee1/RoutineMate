@@ -1,8 +1,12 @@
 package com.example.routinemate.data.remote.datasource
 
 import com.example.routinemate.data.remote.api.ChallengeApi
+import com.example.routinemate.data.remote.dto.challenge.ChallengeDetailResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeInvitationResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeMemberResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeParticipantProgressResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeProgressResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeRecordResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeResponse
 import com.example.routinemate.data.remote.dto.challenge.CreateChallengeRequest
 import javax.inject.Inject
@@ -11,7 +15,6 @@ class ChallengeRemoteDataSource @Inject constructor(
     private val challengeApi: ChallengeApi
 ) {
 
-    // 챌린지 생성
     suspend fun createChallenge(
         request: CreateChallengeRequest
     ): ChallengeResponse {
@@ -21,14 +24,12 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 내가 참여 중인 챌린지 조회
     suspend fun getMyChallenges():
             List<ChallengeResponse> {
 
         return challengeApi.getMyChallenges()
     }
 
-    // 친구 초대
     suspend fun inviteFriend(
         challengeId: Long,
         friendId: Long
@@ -40,14 +41,12 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 내가 받은 챌린지 초대
     suspend fun getMyInvitations():
             List<ChallengeInvitationResponse> {
 
         return challengeApi.getMyInvitations()
     }
 
-    // 초대 수락
     suspend fun acceptInvitation(
         memberId: Long
     ): ChallengeMemberResponse {
@@ -57,7 +56,6 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 초대 거절
     suspend fun rejectInvitation(
         memberId: Long
     ): ChallengeMemberResponse {
@@ -67,12 +65,61 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 챌린지 참여자 목록
     suspend fun getChallengeMembers(
         challengeId: Long
     ): List<ChallengeMemberResponse> {
 
         return challengeApi.getChallengeMembers(
+            challengeId = challengeId
+        )
+    }
+
+    // 내 진행률
+    suspend fun getMyProgress(
+        challengeId: Long
+    ): ChallengeProgressResponse {
+
+        return challengeApi.getMyProgress(
+            challengeId = challengeId
+        )
+    }
+
+    // 참여자 진행 현황
+    suspend fun getParticipantProgress(
+        challengeId: Long
+    ): List<ChallengeParticipantProgressResponse> {
+
+        return challengeApi.getParticipantProgress(
+            challengeId = challengeId
+        )
+    }
+
+    // 챌린지 상세
+    suspend fun getChallengeDetail(
+        challengeId: Long
+    ): ChallengeDetailResponse {
+
+        return challengeApi.getChallengeDetail(
+            challengeId = challengeId
+        )
+    }
+
+    // 오늘 완료
+    suspend fun completeChallenge(
+        challengeId: Long
+    ): ChallengeRecordResponse {
+
+        return challengeApi.completeChallenge(
+            challengeId = challengeId
+        )
+    }
+
+    // 오늘 완료 취소
+    suspend fun cancelChallengeCompletion(
+        challengeId: Long
+    ) {
+
+        challengeApi.cancelChallengeCompletion(
             challengeId = challengeId
         )
     }

@@ -15,6 +15,9 @@ import com.example.routinemate.presentation.home.HomeScreen
 import com.example.routinemate.presentation.profile.ProfileScreen
 import com.example.routinemate.presentation.statistics.StatisticsScreen
 import com.example.routinemate.presentation.challenge.ChallengeScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.routinemate.presentation.challenge.detail.ChallengeDetailScreen
 
 @Composable
 fun AppNavHost(
@@ -112,9 +115,37 @@ fun AppNavHost(
             FriendScreen()
         }
 
-        // 챌린지 화면
         composable(AppRoute.Challenge.route) {
-            ChallengeScreen()
+
+            ChallengeScreen(
+                onChallengeClick = { challengeId ->
+
+                    navController.navigate(
+                        AppRoute.ChallengeDetail.createRoute(
+                            challengeId = challengeId
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoute.ChallengeDetail.route,
+            arguments = listOf(
+                navArgument("challengeId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+
+            val challengeId =
+                backStackEntry.arguments
+                    ?.getLong("challengeId")
+                    ?: return@composable
+
+            ChallengeDetailScreen(
+                challengeId = challengeId
+            )
         }
     }
 }

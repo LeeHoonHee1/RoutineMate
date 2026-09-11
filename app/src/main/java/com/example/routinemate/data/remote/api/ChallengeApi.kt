@@ -1,10 +1,15 @@
 package com.example.routinemate.data.remote.api
 
+import com.example.routinemate.data.remote.dto.challenge.ChallengeDetailResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeInvitationResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeMemberResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeParticipantProgressResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeProgressResponse
+import com.example.routinemate.data.remote.dto.challenge.ChallengeRecordResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeResponse
 import com.example.routinemate.data.remote.dto.challenge.CreateChallengeRequest
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -51,4 +56,34 @@ interface ChallengeApi {
     suspend fun getChallengeMembers(
         @Path("challengeId") challengeId: Long
     ): List<ChallengeMemberResponse>
+
+    // 내 챌린지 진행률
+    @GET("challenges/{challengeId}/progress")
+    suspend fun getMyProgress(
+        @Path("challengeId") challengeId: Long
+    ): ChallengeProgressResponse
+
+    // 참여자별 진행 현황
+    @GET("challenges/{challengeId}/participants/progress")
+    suspend fun getParticipantProgress(
+        @Path("challengeId") challengeId: Long
+    ): List<ChallengeParticipantProgressResponse>
+
+    // 챌린지 상세
+    @GET("challenges/{challengeId}/detail")
+    suspend fun getChallengeDetail(
+        @Path("challengeId") challengeId: Long
+    ): ChallengeDetailResponse
+
+    // 오늘 챌린지 완료
+    @POST("challenges/{challengeId}/complete")
+    suspend fun completeChallenge(
+        @Path("challengeId") challengeId: Long
+    ): ChallengeRecordResponse
+
+    // 오늘 챌린지 완료 취소
+    @DELETE("challenges/{challengeId}/complete")
+    suspend fun cancelChallengeCompletion(
+        @Path("challengeId") challengeId: Long
+    )
 }
