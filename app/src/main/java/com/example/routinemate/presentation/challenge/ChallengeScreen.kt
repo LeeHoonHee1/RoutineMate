@@ -1,25 +1,36 @@
 package com.example.routinemate.presentation.challenge
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,8 +39,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.example.routinemate.ui.theme.RoutineDimens
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun ChallengeScreen(
@@ -37,43 +57,56 @@ fun ChallengeScreen(
     viewModel: ChallengeViewModel = hiltViewModel()
 ) {
 
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by
+    viewModel.uiState.collectAsState()
 
     val snackbarHostState =
-        remember { SnackbarHostState() }
+        remember {
+            SnackbarHostState()
+        }
 
     // 성공 메시지
-    LaunchedEffect(uiState.successMessage) {
+    LaunchedEffect(
+        uiState.successMessage
+    ) {
 
-        uiState.successMessage?.let { message ->
+        uiState.successMessage
+            ?.let { message ->
 
-            snackbarHostState.showSnackbar(
-                message = message
-            )
+                snackbarHostState
+                    .showSnackbar(
+                        message = message
+                    )
 
-            viewModel.clearMessage()
-        }
+                viewModel.clearMessage()
+            }
     }
 
     // 실패 메시지
-    LaunchedEffect(uiState.errorMessage) {
+    LaunchedEffect(
+        uiState.errorMessage
+    ) {
 
-        uiState.errorMessage?.let { message ->
+        uiState.errorMessage
+            ?.let { message ->
 
-            snackbarHostState.showSnackbar(
-                message = message
-            )
+                snackbarHostState
+                    .showSnackbar(
+                        message = message
+                    )
 
-            viewModel.clearMessage()
-        }
+                viewModel.clearMessage()
+            }
     }
 
     Scaffold(
         containerColor =
-            MaterialTheme.colorScheme.background,
+            Color(0xFFFAF9F5),
         snackbarHost = {
+
             SnackbarHost(
-                hostState = snackbarHostState
+                hostState =
+                    snackbarHostState
             )
         }
     ) { innerPadding ->
@@ -81,40 +114,47 @@ fun ChallengeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(
-                    RoutineDimens.ScreenPadding
+                    innerPadding
+                ),
+            contentPadding =
+                PaddingValues(
+                    bottom = 32.dp
                 ),
             verticalArrangement =
                 Arrangement.spacedBy(
-                    RoutineDimens.ItemSpacing
+                    22.dp
                 )
         ) {
 
-            // 제목
+            // 상단 히어로
             item {
 
-                Text(
-                    text = "챌린지",
-                    style =
-                        MaterialTheme.typography.headlineSmall
-                )
+                ChallengeHeader()
+            }
 
-                Spacer(
+            // 함께하는 성장
+            item {
+
+                Box(
                     modifier =
-                        Modifier.height(
-                            RoutineDimens.SmallSpacing
+                        Modifier.padding(
+                            horizontal =
+                                20.dp
                         )
-                )
+                ) {
 
-                Text(
-                    text =
-                        "친구와 함께 목표를 이어가보세요.",
-                    style =
-                        MaterialTheme.typography.bodyMedium,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    ChallengeGrowthCard(
+                        challengeCount =
+                            uiState
+                                .challenges
+                                .size,
+                        invitationCount =
+                            uiState
+                                .invitations
+                                .size
+                    )
+                }
             }
 
             // 로딩
@@ -122,14 +162,20 @@ fun ChallengeScreen(
 
                 item {
 
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.Center
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment =
+                            Alignment.Center
                     ) {
 
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            color =
+                                Color(
+                                    0xFF6E8D71
+                                )
+                        )
                     }
                 }
             }
@@ -137,409 +183,1544 @@ fun ChallengeScreen(
             // 받은 초대
             item {
 
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            RoutineDimens.ContentSpacing
-                        )
-                )
-
-                Text(
-                    text = "받은 초대",
-                    style =
-                        MaterialTheme.typography.titleLarge
+                SectionTitle(
+                    title =
+                        "받은 초대",
+                    count =
+                        uiState
+                            .invitations
+                            .size
                 )
             }
 
-            if (uiState.invitations.isEmpty()) {
+            if (
+                uiState.invitations
+                    .isEmpty()
+            ) {
 
                 item {
 
                     EmptyChallengeCard(
-                        text =
-                            "받은 챌린지 초대가 없어요."
+                        title =
+                            "아직 받은 초대가 없어요.",
+                        description =
+                            "친구의 챌린지 초대를 기다려보세요.",
+                        icon =
+                            "✉️"
                     )
                 }
 
             } else {
 
                 items(
-                    items = uiState.invitations,
-                    key = { invitation ->
-                        invitation.memberId
+                    items =
+                        uiState.invitations,
+                    key = {
+                        it.memberId
                     }
                 ) { invitation ->
 
-                    Card(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        shape =
-                            MaterialTheme.shapes.medium
-                    ) {
+                    InvitationCard(
+                        title =
+                            invitation.title,
+                        ownerNickname =
+                            invitation.ownerNickname,
 
-                        Column(
-                            modifier =
-                                Modifier.padding(
-                                    RoutineDimens.CardPadding
+                        onAccept = {
+
+                            viewModel
+                                .acceptInvitation(
+                                    invitation
+                                        .memberId
                                 )
-                        ) {
+                        },
 
-                            Text(
-                                text =
-                                    invitation.title,
-                                style =
-                                    MaterialTheme.typography.titleMedium
-                            )
+                        onReject = {
 
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        RoutineDimens.SmallSpacing
-                                    )
-                            )
-
-                            Text(
-                                text =
-                                    "초대한 사람: ${invitation.ownerNickname}",
-                                style =
-                                    MaterialTheme.typography.bodyMedium,
-                                color =
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        RoutineDimens.ContentSpacing
-                                    )
-                            )
-
-                            Row(
-                                horizontalArrangement =
-                                    Arrangement.spacedBy(
-                                        RoutineDimens.ItemSpacing
-                                    )
-                            ) {
-
-                                Button(
-                                    onClick = {
-                                        viewModel.acceptInvitation(
-                                            invitation.memberId
-                                        )
-                                    }
-                                ) {
-                                    Text("수락")
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        viewModel.rejectInvitation(
-                                            invitation.memberId
-                                        )
-                                    }
-                                ) {
-                                    Text("거절")
-                                }
-                            }
+                            viewModel
+                                .rejectInvitation(
+                                    invitation
+                                        .memberId
+                                )
                         }
-                    }
+                    )
                 }
             }
 
             // 내 챌린지
             item {
 
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            RoutineDimens.ContentSpacing
-                        )
-                )
-
-                Text(
-                    text = "내 챌린지",
-                    style =
-                        MaterialTheme.typography.titleLarge
+                SectionTitle(
+                    title =
+                        "내 챌린지",
+                    count =
+                        uiState
+                            .challenges
+                            .size
                 )
             }
 
-            if (uiState.challenges.isEmpty()) {
+            if (
+                uiState.challenges
+                    .isEmpty()
+            ) {
 
                 item {
 
                     EmptyChallengeCard(
-                        text =
-                            "참여 중인 챌린지가 없어요."
+                        title =
+                            "함께하는 챌린지가 아직 없어요.",
+                        description =
+                            "친구와 작은 목표부터 시작해보세요.",
+                        icon =
+                            "🌱"
                     )
                 }
 
             } else {
 
                 items(
-                    items = uiState.challenges,
-                    key = { challenge ->
-                        challenge.id
+                    items =
+                        uiState.challenges,
+                    key = {
+                        it.id
                     }
                 ) { challenge ->
 
-                    Card(
-                        onClick = {
+                    MyChallengeCard(
+                        title =
+                            challenge.title,
+
+                        description =
+                            challenge.description,
+
+                        startDate =
+                            challenge.startDate,
+
+                        endDate =
+                            challenge.endDate,
+
+                        friendNames =
+                            uiState.friends
+                                .map {
+                                        friend ->
+                                    friend.nickname
+                                },
+
+                        onChallengeClick = {
+
                             onChallengeClick(
                                 challenge.id
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor =
-                                MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
 
-                        Column(
-                            modifier =
-                                Modifier.padding(
-                                    RoutineDimens.CardPadding
+                        onInviteFriend = {
+                                friendId ->
+
+                            viewModel
+                                .inviteFriend(
+                                    challengeId =
+                                        challenge.id,
+                                    friendId =
+                                        friendId
                                 )
-                        ) {
+                        },
 
-                            Text(
-                                text = challenge.title,
-                                style =
-                                    MaterialTheme.typography.titleMedium
-                            )
+                        friends =
+                            uiState.friends
+                                .map {
+                                        friend ->
 
-                            challenge.description
-                                ?.takeIf {
-                                    it.isNotBlank()
-                                }
-                                ?.let { description ->
-
-                                    Spacer(
-                                        modifier =
-                                            Modifier.height(
-                                                RoutineDimens.SmallSpacing
-                                            )
-                                    )
-
-                                    Text(
-                                        text = description,
-                                        style =
-                                            MaterialTheme.typography.bodyMedium,
-                                        color =
-                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    ChallengeFriendUi(
+                                        id =
+                                            friend.id,
+                                        nickname =
+                                            friend.nickname
                                     )
                                 }
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        RoutineDimens.SmallSpacing
-                                    )
-                            )
-
-                            Text(
-                                text =
-                                    "${challenge.startDate} ~ ${challenge.endDate}",
-                                style =
-                                    MaterialTheme.typography.bodySmall,
-                                color =
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        RoutineDimens.ContentSpacing
-                                    )
-                            )
-
-                            Text(
-                                text = "친구 초대",
-                                style =
-                                    MaterialTheme.typography.labelLarge
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        RoutineDimens.SmallSpacing
-                                    )
-                            )
-
-                            if (uiState.friends.isEmpty()) {
-
-                                Text(
-                                    text =
-                                        "초대할 친구가 없어요.",
-                                    style =
-                                        MaterialTheme.typography.bodyMedium,
-                                    color =
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                            } else {
-
-                                uiState.friends.forEach { friend ->
-
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                vertical =
-                                                    RoutineDimens.SmallSpacing
-                                            ),
-                                        verticalAlignment =
-                                            Alignment.CenterVertically,
-                                        horizontalArrangement =
-                                            Arrangement.SpaceBetween
-                                    ) {
-
-                                        Text(
-                                            text =
-                                                friend.nickname,
-                                            style =
-                                                MaterialTheme.typography.bodyMedium
-                                        )
-
-                                        OutlinedButton(
-                                            onClick = {
-
-                                                viewModel.inviteFriend(
-                                                    challengeId =
-                                                        challenge.id,
-                                                    friendId =
-                                                        friend.id
-                                                )
-                                            }
-                                        ) {
-
-                                            Text("초대")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
             }
 
-            // 챌린지 생성
+            // 챌린지 만들기
             item {
+
+                ChallengeCreateSection(
+                    title =
+                        uiState.title,
+
+                    description =
+                        uiState.description,
+
+                    startDate =
+                        uiState.startDate,
+
+                    endDate =
+                        uiState.endDate,
+
+                    isLoading =
+                        uiState.isLoading,
+
+                    onTitleChange =
+                        viewModel::onTitleChange,
+
+                    onDescriptionChange =
+                        viewModel::
+                        onDescriptionChange,
+
+                    onStartDateChange =
+                        viewModel::
+                        onStartDateChange,
+
+                    onEndDateChange =
+                        viewModel::
+                        onEndDateChange,
+
+                    onCreate = {
+
+                        viewModel
+                            .createChallenge()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChallengeHeader() {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(190.dp)
+            .background(
+                Color(0xFFF7F3E9)
+            )
+    ) {
+
+        ChallengeLandscape(
+            modifier = Modifier
+                .align(
+                    Alignment.BottomEnd
+                )
+                .width(250.dp)
+                .height(145.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .align(
+                    Alignment.CenterStart
+                )
+                .padding(
+                    start = 20.dp,
+                    end = 20.dp
+                )
+        ) {
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text =
+                        "챌린지",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .displaySmall,
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        Color(
+                            0xFF073D32
+                        )
+                )
 
                 Spacer(
                     modifier =
-                        Modifier.height(
-                            RoutineDimens.ContentSpacing
+                        Modifier.width(
+                            9.dp
                         )
                 )
 
                 Text(
-                    text = "챌린지 만들기",
+                    text = "🌱",
                     style =
-                        MaterialTheme.typography.titleLarge
+                        MaterialTheme
+                            .typography
+                            .headlineMedium
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        5.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "친구와 함께 목표를 이어가보세요.",
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyLarge,
+                color =
+                    Color(
+                        0xFF66766E
+                    )
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        17.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "함께하는 매일이\n더 좋은 습관이 돼요. 🌱",
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyMedium,
+                color =
+                    Color(
+                        0xFF4E7160
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChallengeLandscape(
+    modifier: Modifier =
+        Modifier
+) {
+
+    Canvas(
+        modifier =
+            modifier
+    ) {
+
+        // 해
+        drawCircle(
+            color =
+                Color(
+                    0xFFF4B36F
+                ),
+            radius =
+                size.width *
+                        0.11f,
+            center =
+                Offset(
+                    size.width *
+                            0.78f,
+                    size.height *
+                            0.34f
+                )
+        )
+
+        // 뒤 산
+        val backMountain =
+            Path().apply {
+
+                moveTo(
+                    0f,
+                    size.height
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            RoutineDimens.ContentSpacing
-                        )
+                lineTo(
+                    0f,
+                    size.height *
+                            0.73f
                 )
 
-                OutlinedTextField(
-                    value = uiState.title,
-                    onValueChange =
-                        viewModel::onTitleChange,
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    label = {
-                        Text("챌린지 이름")
-                    },
-                    singleLine = true
+                cubicTo(
+                    size.width *
+                            0.18f,
+                    size.height *
+                            0.61f,
+                    size.width *
+                            0.29f,
+                    size.height *
+                            0.48f,
+                    size.width *
+                            0.44f,
+                    size.height *
+                            0.58f
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            RoutineDimens.ContentSpacing
-                        )
+                cubicTo(
+                    size.width *
+                            0.60f,
+                    size.height *
+                            0.69f,
+                    size.width *
+                            0.70f,
+                    size.height *
+                            0.47f,
+                    size.width *
+                            0.84f,
+                    size.height *
+                            0.56f
                 )
 
-                OutlinedTextField(
+                cubicTo(
+                    size.width *
+                            0.91f,
+                    size.height *
+                            0.60f,
+                    size.width *
+                            0.96f,
+                    size.height *
+                            0.57f,
+                    size.width,
+                    size.height *
+                            0.52f
+                )
+
+                lineTo(
+                    size.width,
+                    size.height
+                )
+
+                close()
+            }
+
+        drawPath(
+            path =
+                backMountain,
+            color =
+                Color(
+                    0xFFDCE5D7
+                )
+        )
+
+        // 앞 산
+        val frontMountain =
+            Path().apply {
+
+                moveTo(
+                    0f,
+                    size.height
+                )
+
+                lineTo(
+                    0f,
+                    size.height *
+                            0.88f
+                )
+
+                cubicTo(
+                    size.width *
+                            0.22f,
+                    size.height *
+                            0.69f,
+                    size.width *
+                            0.40f,
+                    size.height *
+                            0.66f,
+                    size.width *
+                            0.57f,
+                    size.height *
+                            0.80f
+                )
+
+                cubicTo(
+                    size.width *
+                            0.72f,
+                    size.height *
+                            0.92f,
+                    size.width *
+                            0.87f,
+                    size.height *
+                            0.72f,
+                    size.width,
+                    size.height *
+                            0.69f
+                )
+
+                lineTo(
+                    size.width,
+                    size.height
+                )
+
+                close()
+            }
+
+        drawPath(
+            path =
+                frontMountain,
+            color =
+                Color(
+                    0xFFB4C7AD
+                )
+        )
+    }
+}
+
+@Composable
+private fun ChallengeGrowthCard(
+    challengeCount: Int,
+    invitationCount: Int
+) {
+
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(
+                26.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color.White
+                ),
+        elevation =
+            CardDefaults
+                .cardElevation(
+                    defaultElevation =
+                        2.dp
+                )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    20.dp
+                )
+        ) {
+
+            Text(
+                text =
+                    "함께하는 성장",
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleLarge,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(
+                        0xFF123D33
+                    )
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        18.dp
+                    )
+            )
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+            ) {
+
+                GrowthCountItem(
+                    icon =
+                        "👥",
+                    label =
+                        "진행 중",
                     value =
-                        uiState.description,
-                    onValueChange =
-                        viewModel::onDescriptionChange,
+                        challengeCount,
                     modifier =
-                        Modifier.fillMaxWidth(),
-                    label = {
-                        Text("설명")
+                        Modifier.weight(
+                            1f
+                        )
+                )
+
+                GrowthCountItem(
+                    icon =
+                        "✉️",
+                    label =
+                        "받은 초대",
+                    value =
+                        invitationCount,
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        18.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "친구와 같이 하면\n조금 더 오래 이어갈 수 있어요. 🌱",
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyMedium,
+                color =
+                    Color(
+                        0xFF5E7467
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun GrowthCountItem(
+    icon: String,
+    label: String,
+    value: Int,
+    modifier: Modifier =
+        Modifier
+) {
+
+    Row(
+        modifier =
+            modifier,
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color(
+                        0xFFEEF3E9
+                    )
+                ),
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text =
+                    icon,
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleLarge
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.width(
+                    10.dp
+                )
+        )
+
+        Column {
+
+            Text(
+                text =
+                    label,
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+                color =
+                    Color(
+                        0xFF718078
+                    )
+            )
+
+            Text(
+                text =
+                    value.toString(),
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleLarge,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(
+                        0xFF163E34
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(
+    title: String,
+    count: Int
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            ),
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Text(
+            text =
+                title,
+            style =
+                MaterialTheme
+                    .typography
+                    .titleLarge,
+            fontWeight =
+                FontWeight.Bold,
+            color =
+                Color(
+                    0xFF123D33
+                )
+        )
+
+        Spacer(
+            modifier =
+                Modifier.weight(
+                    1f
+                )
+        )
+
+        Text(
+            text =
+                "${count}개",
+            style =
+                MaterialTheme
+                    .typography
+                    .bodyMedium,
+            color =
+                Color(
+                    0xFF7E8580
+                )
+        )
+    }
+}
+
+@Composable
+private fun InvitationCard(
+    title: String,
+    ownerNickname: String,
+    onAccept: () -> Unit,
+    onReject: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color.White
+                ),
+        elevation =
+            CardDefaults
+                .cardElevation(
+                    defaultElevation =
+                        1.dp
+                )
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    16.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(
+                        CircleShape
+                    )
+                    .background(
+                        Color(
+                            0xFFEAF2E6
+                        )
+                    ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Text(
+                    text = "🌱",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .headlineMedium
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        13.dp
+                    )
+            )
+
+            Column(
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "${ownerNickname}님이 초대했어요!",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+                    color =
+                        Color(
+                            0xFF7A847E
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            3.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        title,
+                    style =
+                        MaterialTheme
+                            .typography
+                            .titleMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF25372F
+                        ),
+                    maxLines = 1,
+                    overflow =
+                        TextOverflow
+                            .Ellipsis
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            12.dp
+                        )
+                )
+
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
+
+                    OutlinedButton(
+                        onClick =
+                            onReject,
+                        shape =
+                            RoundedCornerShape(
+                                50.dp
+                            ),
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+                    ) {
+
+                        Text(
+                            "거절"
+                        )
                     }
+
+                    Button(
+                        onClick =
+                            onAccept,
+                        shape =
+                            RoundedCornerShape(
+                                50.dp
+                            ),
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            ),
+                        colors =
+                            ButtonDefaults
+                                .buttonColors(
+                                    containerColor =
+                                        Color(
+                                            0xFF658868
+                                        )
+                                )
+                    ) {
+
+                        Text(
+                            "참여하기"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class ChallengeFriendUi(
+    val id: Long,
+    val nickname: String
+)
+
+@Composable
+private fun MyChallengeCard(
+    title: String,
+    description: String?,
+    startDate: String,
+    endDate: String,
+    friendNames: List<String>,
+    friends: List<ChallengeFriendUi>,
+    onChallengeClick: () -> Unit,
+    onInviteFriend: (Long) -> Unit
+) {
+
+    Card(
+        onClick =
+            onChallengeClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color.White
+                ),
+        elevation =
+            CardDefaults
+                .cardElevation(
+                    defaultElevation =
+                        1.dp
+                )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    16.dp
+                )
+        ) {
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                17.dp
+                            )
+                        )
+                        .background(
+                            Color(
+                                0xFFFFF0DE
+                            )
+                        ),
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Text(
+                        text =
+                            challengeIcon(
+                                title
+                            ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .headlineMedium
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            13.dp
+                        )
+                )
+
+                Column(
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                ) {
+
+                    Text(
+                        text =
+                            title,
+                        style =
+                            MaterialTheme
+                                .typography
+                                .titleMedium,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            Color(
+                                0xFF25362F
+                            ),
+                        maxLines = 1,
+                        overflow =
+                            TextOverflow
+                                .Ellipsis
+                    )
+
+                    if (
+                        !description
+                            .isNullOrBlank()
+                    ) {
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(
+                                    3.dp
+                                )
+                        )
+
+                        Text(
+                            text =
+                                description,
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+                            color =
+                                Color(
+                                    0xFF7A847E
+                                ),
+                            maxLines = 1,
+                            overflow =
+                                TextOverflow
+                                    .Ellipsis
+                        )
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                5.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "${formatDate(startDate)} ~ ${formatDate(endDate)}",
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall,
+                        color =
+                            Color(
+                                0xFF777F7A
+                            )
+                    )
+                }
+
+                Surface(
+                    shape =
+                        RoundedCornerShape(
+                            50.dp
+                        ),
+                    color =
+                        Color(
+                            0xFFFFE8D5
+                        )
+                ) {
+
+                    Text(
+                        text =
+                            calculateDday(
+                                endDate
+                            ),
+                        modifier =
+                            Modifier.padding(
+                                horizontal =
+                                    10.dp,
+                                vertical =
+                                    6.dp
+                            ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .labelLarge,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            Color(
+                                0xFFD46F2A
+                            )
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            7.dp
+                        )
+                )
+
+                Text(
+                    text = "›",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .headlineSmall,
+                    color =
+                        Color(
+                            0xFF708078
+                        )
+                )
+            }
+
+            if (
+                friends.isNotEmpty()
+            ) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            14.dp
+                        )
+                )
+
+                HorizontalDivider(
+                    color =
+                        Color(
+                            0xFFF0F1ED
+                        )
                 )
 
                 Spacer(
                     modifier =
                         Modifier.height(
-                            RoutineDimens.ContentSpacing
+                            12.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        "친구 초대",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .labelLarge,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF557064
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            8.dp
+                        )
+                )
+
+                friends.forEach {
+                        friend ->
+
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Box(
+                            modifier = Modifier
+                                .size(
+                                    28.dp
+                                )
+                                .clip(
+                                    CircleShape
+                                )
+                                .background(
+                                    Color(
+                                        0xFFE9F0E5
+                                    )
+                                ),
+                            contentAlignment =
+                                Alignment.Center
+                        ) {
+
+                            Text(
+                                text =
+                                    friend.nickname
+                                        .firstOrNull()
+                                        ?.toString()
+                                        ?: "?"
+                            )
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    8.dp
+                                )
+                        )
+
+                        Text(
+                            text =
+                                friend.nickname,
+                            modifier =
+                                Modifier.weight(
+                                    1f
+                                ),
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
+                        )
+
+                        OutlinedButton(
+                            onClick = {
+
+                                onInviteFriend(
+                                    friend.id
+                                )
+                            },
+                            shape =
+                                RoundedCornerShape(
+                                    50.dp
+                                )
+                        ) {
+
+                            Text(
+                                "초대"
+                            )
+                        }
+                    }
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                6.dp
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChallengeCreateSection(
+    title: String,
+    description: String,
+    startDate: String,
+    endDate: String,
+    isLoading: Boolean,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onStartDateChange: (String) -> Unit,
+    onEndDateChange: (String) -> Unit,
+    onCreate: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            )
+    ) {
+
+        Row(
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = "🌱",
+                style =
+                    MaterialTheme
+                        .typography
+                        .headlineMedium
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        8.dp
+                    )
+            )
+
+            Column {
+
+                Text(
+                    text =
+                        "챌린지 만들기",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .titleLarge,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF123D33
+                        )
+                )
+
+                Text(
+                    text =
+                        "나만의 챌린지를 만들고 친구와 함께 도전해보세요!",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+                    color =
+                        Color(
+                            0xFF76827B
+                        )
+                )
+            }
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    14.dp
+                )
+        )
+
+        Card(
+            modifier =
+                Modifier.fillMaxWidth(),
+            shape =
+                RoundedCornerShape(
+                    24.dp
+                ),
+            colors =
+                CardDefaults
+                    .cardColors(
+                        containerColor =
+                            Color(
+                                0xFFF4F7F0
+                            )
+                    )
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(
+                        16.dp
+                    )
+            ) {
+
+                OutlinedTextField(
+                    value =
+                        title,
+                    onValueChange =
+                        onTitleChange,
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    label = {
+                        Text(
+                            "챌린지 이름"
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            "예) 하루 10분 명상하기"
+                        )
+                    },
+                    shape =
+                        RoundedCornerShape(
+                            15.dp
+                        ),
+                    singleLine =
+                        true
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            10.dp
                         )
                 )
 
                 OutlinedTextField(
                     value =
-                        uiState.startDate,
+                        description,
                     onValueChange =
-                        viewModel::onStartDateChange,
+                        onDescriptionChange,
                     modifier =
                         Modifier.fillMaxWidth(),
                     label = {
-                        Text("시작일")
+                        Text(
+                            "설명"
+                        )
                     },
                     placeholder = {
-                        Text("2026-09-07")
+                        Text(
+                            "어떤 챌린지인가요?"
+                        )
                     },
-                    singleLine = true
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            RoutineDimens.ContentSpacing
+                    shape =
+                        RoundedCornerShape(
+                            15.dp
                         )
                 )
 
-                OutlinedTextField(
-                    value =
-                        uiState.endDate,
-                    onValueChange =
-                        viewModel::onEndDateChange,
+                Spacer(
                     modifier =
-                        Modifier.fillMaxWidth(),
-                    label = {
-                        Text("종료일")
-                    },
-                    placeholder = {
-                        Text("2026-09-13")
-                    },
-                    singleLine = true
+                        Modifier.height(
+                            10.dp
+                        )
                 )
+
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
+
+                    OutlinedTextField(
+                        value =
+                            startDate,
+                        onValueChange =
+                            onStartDateChange,
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            ),
+                        label = {
+                            Text(
+                                "시작일"
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                "2026-09-15"
+                            )
+                        },
+                        shape =
+                            RoundedCornerShape(
+                                15.dp
+                            ),
+                        singleLine =
+                            true
+                    )
+
+                    OutlinedTextField(
+                        value =
+                            endDate,
+                        onValueChange =
+                            onEndDateChange,
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            ),
+                        label = {
+                            Text(
+                                "종료일"
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                "2026-09-30"
+                            )
+                        },
+                        shape =
+                            RoundedCornerShape(
+                                15.dp
+                            ),
+                        singleLine =
+                            true
+                    )
+                }
 
                 Spacer(
                     modifier =
                         Modifier.height(
-                            RoutineDimens.ContentSpacing
+                            14.dp
                         )
                 )
 
                 Button(
-                    onClick = {
-                        viewModel.createChallenge()
-                    },
-                    modifier =
-                        Modifier.fillMaxWidth()
+                    onClick =
+                        onCreate,
+                    enabled =
+                        !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(
+                            52.dp
+                        ),
+                    shape =
+                        RoundedCornerShape(
+                            18.dp
+                        ),
+                    colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor =
+                                    Color(
+                                        0xFF628468
+                                    )
+                            )
                 ) {
 
-                    Text("챌린지 만들기")
+                    Text(
+                        text =
+                            "＋  챌린지 만들기",
+                        fontWeight =
+                            FontWeight.Bold
+                    )
                 }
             }
         }
@@ -548,27 +1729,189 @@ fun ChallengeScreen(
 
 @Composable
 private fun EmptyChallengeCard(
-    text: String
+    title: String,
+    description: String,
+    icon: String
 ) {
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color(
+                            0xFFF1F4EC
+                        )
+                )
     ) {
 
-        Text(
-            text = text,
-            modifier = Modifier.padding(
-                RoutineDimens.CardPadding
-            ),
-            style =
-                MaterialTheme.typography.bodyMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            modifier =
+                Modifier.padding(
+                    18.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text =
+                    icon,
+                style =
+                    MaterialTheme
+                        .typography
+                        .headlineMedium
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        12.dp
+                    )
+            )
+
+            Column {
+
+                Text(
+                    text =
+                        title,
+                    style =
+                        MaterialTheme
+                            .typography
+                            .titleMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF41544A
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            3.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        description,
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+                    color =
+                        Color(
+                            0xFF7A847E
+                        )
+                )
+            }
+        }
+    }
+}
+
+private fun calculateDday(
+    endDate: String
+): String {
+
+    return try {
+
+        val today =
+            LocalDate.now()
+
+        val end =
+            LocalDate.parse(
+                endDate,
+                DateTimeFormatter
+                    .ISO_LOCAL_DATE
+            )
+
+        val days =
+            ChronoUnit.DAYS
+                .between(
+                    today,
+                    end
+                )
+
+        when {
+
+            days > 0 ->
+                "D-$days"
+
+            days == 0L ->
+                "D-Day"
+
+            else ->
+                "종료"
+        }
+
+    } catch (
+        e: Exception
+    ) {
+
+        ""
+    }
+}
+
+private fun formatDate(
+    date: String
+): String {
+
+    return try {
+
+        val localDate =
+            LocalDate.parse(
+                date,
+                DateTimeFormatter
+                    .ISO_LOCAL_DATE
+            )
+
+        "${localDate.monthValue}/${localDate.dayOfMonth}"
+
+    } catch (
+        e: Exception
+    ) {
+
+        date
+    }
+}
+
+private fun challengeIcon(
+    title: String
+): String {
+
+    return when {
+
+        title.contains("물") ->
+            "💧"
+
+        title.contains("책") ||
+                title.contains("독서") ->
+            "📖"
+
+        title.contains("잠") ||
+                title.contains("수면") ->
+            "🌙"
+
+        title.contains("운동") ||
+                title.contains("스트레칭") ->
+            "🏃"
+
+        title.contains("공부") ->
+            "📚"
+
+        else ->
+            "🌱"
     }
 }

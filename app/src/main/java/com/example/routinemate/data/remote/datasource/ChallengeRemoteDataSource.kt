@@ -9,6 +9,7 @@ import com.example.routinemate.data.remote.dto.challenge.ChallengeProgressRespon
 import com.example.routinemate.data.remote.dto.challenge.ChallengeRecordResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeResponse
 import com.example.routinemate.data.remote.dto.challenge.CreateChallengeRequest
+import com.example.routinemate.data.remote.dto.challenge.HomeChallengeResponse
 import javax.inject.Inject
 
 class ChallengeRemoteDataSource @Inject constructor(
@@ -28,6 +29,13 @@ class ChallengeRemoteDataSource @Inject constructor(
             List<ChallengeResponse> {
 
         return challengeApi.getMyChallenges()
+    }
+
+    // 홈용 챌린지 목록
+    suspend fun getHomeChallenges():
+            List<HomeChallengeResponse> {
+
+        return challengeApi.getHomeChallenges()
     }
 
     suspend fun inviteFriend(
@@ -74,7 +82,6 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 내 진행률
     suspend fun getMyProgress(
         challengeId: Long
     ): ChallengeProgressResponse {
@@ -84,7 +91,6 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 참여자 진행 현황
     suspend fun getParticipantProgress(
         challengeId: Long
     ): List<ChallengeParticipantProgressResponse> {
@@ -94,7 +100,6 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 챌린지 상세
     suspend fun getChallengeDetail(
         challengeId: Long
     ): ChallengeDetailResponse {
@@ -104,7 +109,6 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 오늘 완료
     suspend fun completeChallenge(
         challengeId: Long
     ): ChallengeRecordResponse {
@@ -114,7 +118,6 @@ class ChallengeRemoteDataSource @Inject constructor(
         )
     }
 
-    // 오늘 완료 취소
     suspend fun cancelChallengeCompletion(
         challengeId: Long
     ) {

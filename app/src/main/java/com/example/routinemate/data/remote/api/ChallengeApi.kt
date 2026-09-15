@@ -8,6 +8,7 @@ import com.example.routinemate.data.remote.dto.challenge.ChallengeProgressRespon
 import com.example.routinemate.data.remote.dto.challenge.ChallengeRecordResponse
 import com.example.routinemate.data.remote.dto.challenge.ChallengeResponse
 import com.example.routinemate.data.remote.dto.challenge.CreateChallengeRequest
+import com.example.routinemate.data.remote.dto.challenge.HomeChallengeResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -27,43 +28,48 @@ interface ChallengeApi {
     suspend fun getMyChallenges():
             List<ChallengeResponse>
 
-    // 친구를 챌린지에 초대
+    // 홈용 챌린지 목록
+    @GET("challenges/home")
+    suspend fun getHomeChallenges():
+            List<HomeChallengeResponse>
+
+    // 친구 초대
     @POST("challenges/{challengeId}/invite/{friendId}")
     suspend fun inviteFriend(
         @Path("challengeId") challengeId: Long,
         @Path("friendId") friendId: Long
     ): ChallengeMemberResponse
 
-    // 내가 받은 챌린지 초대
+    // 받은 초대 조회
     @GET("challenges/invitations")
     suspend fun getMyInvitations():
             List<ChallengeInvitationResponse>
 
-    // 챌린지 초대 수락
+    // 초대 수락
     @POST("challenges/invitations/{memberId}/accept")
     suspend fun acceptInvitation(
         @Path("memberId") memberId: Long
     ): ChallengeMemberResponse
 
-    // 챌린지 초대 거절
+    // 초대 거절
     @POST("challenges/invitations/{memberId}/reject")
     suspend fun rejectInvitation(
         @Path("memberId") memberId: Long
     ): ChallengeMemberResponse
 
-    // 챌린지 참여자 목록
+    // 참여자 목록
     @GET("challenges/{challengeId}/members")
     suspend fun getChallengeMembers(
         @Path("challengeId") challengeId: Long
     ): List<ChallengeMemberResponse>
 
-    // 내 챌린지 진행률
+    // 내 진행률
     @GET("challenges/{challengeId}/progress")
     suspend fun getMyProgress(
         @Path("challengeId") challengeId: Long
     ): ChallengeProgressResponse
 
-    // 참여자별 진행 현황
+    // 참여자 진행 현황
     @GET("challenges/{challengeId}/participants/progress")
     suspend fun getParticipantProgress(
         @Path("challengeId") challengeId: Long
@@ -75,13 +81,13 @@ interface ChallengeApi {
         @Path("challengeId") challengeId: Long
     ): ChallengeDetailResponse
 
-    // 오늘 챌린지 완료
+    // 오늘 완료
     @POST("challenges/{challengeId}/complete")
     suspend fun completeChallenge(
         @Path("challengeId") challengeId: Long
     ): ChallengeRecordResponse
 
-    // 오늘 챌린지 완료 취소
+    // 오늘 완료 취소
     @DELETE("challenges/{challengeId}/complete")
     suspend fun cancelChallengeCompletion(
         @Path("challengeId") challengeId: Long

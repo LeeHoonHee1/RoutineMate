@@ -18,6 +18,8 @@ import com.example.routinemate.presentation.habit.HabitScreen
 import com.example.routinemate.presentation.home.HomeScreen
 import com.example.routinemate.presentation.profile.ProfileScreen
 import com.example.routinemate.presentation.statistics.StatisticsScreen
+import com.example.routinemate.presentation.todayroutine.TodayRoutineScreen
+import com.example.routinemate.presentation.challenge.overview.ChallengeOverviewScreen
 
 @Composable
 fun AppNavHost(
@@ -89,10 +91,74 @@ fun AppNavHost(
         ) {
 
             HomeScreen(
+
+                // 전체보기 → 상세 챌린지 목록
                 onChallengeClick = {
 
                     navController.navigate(
+                        AppRoute.ChallengeOverview.route
+                    )
+                },
+
+                // 오늘 루틴 전체보기
+                onHabitClick = {
+
+                    navController.navigate(
+                        AppRoute.TodayRoutine.route
+                    )
+                },
+
+                // 홈 챌린지 카드 → 상세
+                onChallengeDetailClick = { challengeId ->
+
+                    navController.navigate(
+                        AppRoute.ChallengeDetail.createRoute(
+                            challengeId = challengeId
+                        )
+                    )
+                },
+
+                // 챌린지 만들기
+                onChallengeCreateClick = {
+
+                    navController.navigate(
                         AppRoute.Challenge.route
+                    )
+                }
+            )
+        }
+
+        // 오늘의 루틴
+        composable(
+            route = AppRoute.TodayRoutine.route
+        ) {
+
+            TodayRoutineScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 챌린지 전체보기
+        composable(
+            route =
+                AppRoute.ChallengeOverview.route
+        ) {
+
+            ChallengeOverviewScreen(
+
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onChallengeClick = { challengeId ->
+
+                    navController.navigate(
+                        AppRoute.ChallengeDetail.createRoute(
+                            challengeId =
+                                challengeId
+                        )
                     )
                 }
             )
@@ -175,7 +241,7 @@ fun AppNavHost(
             FriendScreen()
         }
 
-        // 챌린지
+        // 챌린지 목록
         composable(
             route = AppRoute.Challenge.route
         ) {

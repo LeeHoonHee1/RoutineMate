@@ -1,6 +1,10 @@
 package com.example.routinemate.presentation.habit
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,21 +13,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,17 +41,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.routinemate.ui.theme.RoutineAccentOrange
-import com.example.routinemate.ui.theme.RoutineDimens
+import com.example.routinemate.data.remote.dto.habit.HabitResponse
 
 @Composable
 fun HabitScreen(
     viewModel: HabitViewModel = hiltViewModel()
 ) {
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by
+    viewModel.uiState.collectAsStateWithLifecycle()
 
     var deleteHabitId by remember {
         mutableStateOf<Long?>(null)
@@ -54,9 +68,8 @@ fun HabitScreen(
         mutableStateOf(false)
     }
 
-    // 현재 열려 있는 카드 메뉴의 Habit ID
-    var expandedMenuHabitId by remember {
-        mutableStateOf<Long?>(null)
+    var selectedCategory by remember {
+        mutableStateOf<HabitCategory?>(null)
     }
 
     // 화면 진입 시 습관 목록 조회
@@ -64,390 +77,321 @@ fun HabitScreen(
         viewModel.loadHabits()
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(RoutineDimens.ScreenPadding)
+            .background(
+                Color(0xFFFAF9F5)
+            )
     ) {
 
-        // 화면 제목
-        Text(
-            text = "내 습관",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(
-            modifier = Modifier.height(
-                RoutineDimens.SmallSpacing
-            )
-        )
-
-        Text(
-            text = "오늘을 만드는 작은 루틴을 관리해보세요.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier = Modifier.height(
-                RoutineDimens.SectionSpacing
-            )
-        )
-
-        // 오늘 진행 상황
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor =
-                    MaterialTheme.colorScheme.primaryContainer
-            )
+        LazyColumn(
+            modifier =
+                Modifier.fillMaxSize(),
+            contentPadding =
+                PaddingValues(
+                    bottom = 32.dp
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    24.dp
+                )
         ) {
 
-            Column(
-                modifier = Modifier.padding(
-                    RoutineDimens.CardPadding
-                )
-            ) {
+            // 상단 영역
+            item {
 
-                Text(
-                    text = "오늘의 진행",
-                    style = MaterialTheme.typography.titleMedium,
-                    color =
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        RoutineDimens.ContentSpacing
-                    )
-                )
-
-                Text(
-                    text = "${uiState.completionRate}%",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = RoutineAccentOrange
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        RoutineDimens.ContentSpacing
-                    )
-                )
-
-                LinearProgressIndicator(
-                    progress = {
-                        uiState.completionRate / 100f
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surface
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        RoutineDimens.ContentSpacing
-                    )
-                )
-
-                Text(
-                    text =
-                        "${uiState.totalHabitCount}개 중 " +
-                                "${uiState.completedHabitCount}개 완료",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color =
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(
-                RoutineDimens.ItemSpacing
-            )
-        )
-
-        // 새 습관 생성 버튼
-        Button(
-            onClick = {
-                viewModel.cancelEditing()
-                showHabitDialog = true
-            },
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("+ 새 습관 만들기")
-        }
-
-        // 오류 메시지
-        if (uiState.errorMessage != null) {
-
-            Spacer(
-                modifier = Modifier.height(
-                    RoutineDimens.ItemSpacing
-                )
-            )
-
-            Text(
-                text = uiState.errorMessage!!,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-
-        Spacer(
-            modifier = Modifier.height(
-                RoutineDimens.SectionSpacing
-            )
-        )
-
-        Text(
-            text = "등록된 습관",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(
-            modifier = Modifier.height(
-                RoutineDimens.ContentSpacing
-            )
-        )
-
-        if (uiState.isLoading) {
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        RoutineDimens.ContentSpacing
-                    )
-                )
-
-                Text(
-                    text = "습관을 불러오고 있어요",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                HabitHeader()
             }
 
-        } else if (uiState.habits.isEmpty()) {
-
-            // Empty 상태
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor =
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
+            // 오류
+            if (
+                uiState.errorMessage != null
             ) {
 
-                Column(
-                    modifier = Modifier.padding(
-                        RoutineDimens.CardPadding
-                    )
-                ) {
+                item {
 
                     Text(
-                        text = "아직 등록된 습관이 없어요",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(
-                            RoutineDimens.SmallSpacing
-                        )
-                    )
-
-                    Text(
-                        text = "위의 버튼으로 첫 습관을 만들어보세요.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text =
+                            uiState.errorMessage
+                                ?: "",
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 20.dp
+                            ),
                         color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme
+                                .colorScheme
+                                .error
                     )
                 }
             }
 
-        } else {
+            // 로딩
+            if (uiState.isLoading) {
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    bottom = RoutineDimens.ScreenPadding
-                ),
-                verticalArrangement = Arrangement.spacedBy(
-                    RoutineDimens.ItemSpacing
-                )
-            ) {
+                item {
 
-                items(
-                    items = uiState.habits,
-                    key = { habit ->
-                        habit.id
-                    }
-                ) { habit ->
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor =
-                                if (habit.isCompletedToday) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentAlignment =
+                            Alignment.Center
                     ) {
+
+                        CircularProgressIndicator()
+                    }
+                }
+
+            } else {
+
+                // 오늘 진행 카드
+                item {
+
+                    Box(
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 20.dp
+                            )
+                    ) {
+
+                        HabitProgressCard(
+                            completedCount =
+                                uiState
+                                    .completedHabitCount,
+                            totalCount =
+                                uiState
+                                    .totalHabitCount,
+                            completionRate =
+                                uiState
+                                    .completionRate
+                        )
+                    }
+                }
+
+                // 오늘의 루틴
+                item {
+
+                    Column {
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(
-                                    RoutineDimens.CardPadding
+                                    horizontal =
+                                        20.dp
                                 ),
                             verticalAlignment =
                                 Alignment.CenterVertically
                         ) {
 
-                            // 오늘 완료 여부 체크
-                            Checkbox(
-                                checked = habit.isCompletedToday,
-                                onCheckedChange = {
-                                    viewModel.toggleHabitCompletion(
-                                        habitId = habit.id,
-                                        isCompletedToday =
-                                            habit.isCompletedToday
+                            Text(
+                                text =
+                                    "오늘의 루틴",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .titleLarge,
+                                fontWeight =
+                                    FontWeight.Bold,
+                                color =
+                                    Color(
+                                        0xFF123D33
                                     )
-                                },
-                                enabled = !uiState.isLoading
                             )
 
                             Spacer(
-                                modifier = Modifier.width(
-                                    RoutineDimens.ItemSpacing
-                                )
+                                modifier =
+                                    Modifier.weight(
+                                        1f
+                                    )
                             )
 
-                            // Habit 정보
-                            Column(
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text =
+                                    "${uiState.totalHabitCount}개의 루틴",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodyMedium,
+                                color =
+                                    Color(
+                                        0xFF7B827E
+                                    )
+                            )
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(
+                                    12.dp
+                                )
+                        )
+
+                        if (
+                            uiState.habits
+                                .isEmpty()
+                        ) {
+
+                            EmptyHabitCard()
+
+                        } else {
+
+                            TodayRoutineCard(
+                                habits =
+                                    uiState.habits,
+                                onToggle = {
+                                        habit ->
+
+                                    viewModel
+                                        .toggleHabitCompletion(
+                                            habitId =
+                                                habit.id,
+                                            isCompletedToday =
+                                                habit.isCompletedToday
+                                        )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // 내 습관
+                if (
+                    uiState.habits
+                        .isNotEmpty()
+                ) {
+
+                    item {
+
+                        Column {
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal =
+                                            20.dp
+                                    ),
+                                verticalAlignment =
+                                    Alignment
+                                        .CenterVertically
                             ) {
 
                                 Text(
-                                    text = habit.title,
+                                    text =
+                                        "내 습관",
                                     style =
-                                        MaterialTheme.typography.titleMedium,
+                                        MaterialTheme
+                                            .typography
+                                            .titleLarge,
+                                    fontWeight =
+                                        FontWeight.Bold,
                                     color =
-                                        if (habit.isCompletedToday) {
-                                            MaterialTheme.colorScheme
-                                                .onPrimaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme
-                                                .onSurface
-                                        }
+                                        Color(
+                                            0xFF123D33
+                                        )
                                 )
 
-                                if (!habit.description.isNullOrBlank()) {
-
-                                    Spacer(
-                                        modifier = Modifier.height(
-                                            RoutineDimens.SmallSpacing
+                                Spacer(
+                                    modifier =
+                                        Modifier.weight(
+                                            1f
                                         )
-                                    )
+                                )
 
-                                    Text(
-                                        text = habit.description,
-                                        style =
-                                            MaterialTheme.typography.bodyMedium,
-                                        color =
-                                            MaterialTheme.colorScheme
-                                                .onSurfaceVariant
-                                    )
-                                }
+                                Text(
+                                    text =
+                                        "모두 보기 ›",
+                                    style =
+                                        MaterialTheme
+                                            .typography
+                                            .bodyMedium,
+                                    color =
+                                        Color(
+                                            0xFF777E79
+                                        )
+                                )
                             }
 
-                            // 수정 / 삭제 메뉴
-                            Column {
-
-                                IconButton(
-                                    onClick = {
-                                        expandedMenuHabitId =
-                                            if (
-                                                expandedMenuHabitId ==
-                                                habit.id
-                                            ) {
-                                                null
-                                            } else {
-                                                habit.id
-                                            }
-                                    },
-                                    enabled = !uiState.isLoading
-                                ) {
-
-                                    Text(
-                                        text = "⋮",
-                                        style =
-                                            MaterialTheme.typography.titleLarge,
-                                        color =
-                                            MaterialTheme.colorScheme
-                                                .onSurfaceVariant
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        12.dp
                                     )
+                            )
+
+                            HabitManagementRow(
+                                habits =
+                                    uiState.habits,
+                                onEdit = {
+                                        habitId ->
+
+                                    viewModel
+                                        .startEditing(
+                                            habitId
+                                        )
+
+                                    showHabitDialog =
+                                        true
+                                },
+                                onDelete = {
+                                        habitId ->
+
+                                    deleteHabitId =
+                                        habitId
                                 }
-
-                                DropdownMenu(
-                                    expanded =
-                                        expandedMenuHabitId == habit.id,
-                                    onDismissRequest = {
-                                        expandedMenuHabitId = null
-                                    }
-                                ) {
-
-                                    // 수정
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text("수정")
-                                        },
-                                        onClick = {
-
-                                            expandedMenuHabitId = null
-
-                                            viewModel.startEditing(
-                                                habit.id
-                                            )
-
-                                            showHabitDialog = true
-                                        }
-                                    )
-
-                                    // 삭제
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = "삭제",
-                                                color =
-                                                    MaterialTheme.colorScheme
-                                                        .error
-                                            )
-                                        },
-                                        onClick = {
-
-                                            expandedMenuHabitId = null
-
-                                            deleteHabitId = habit.id
-                                        }
-                                    )
-                                }
-                            }
+                            )
                         }
+                    }
+                }
+
+                // 습관 만들기
+                item {
+
+                    Button(
+                        onClick = {
+
+                            viewModel
+                                .cancelEditing()
+
+                            showHabitDialog =
+                                true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal =
+                                    20.dp
+                            )
+                            .height(58.dp),
+                        shape =
+                            RoundedCornerShape(
+                                22.dp
+                            ),
+                        colors =
+                            ButtonDefaults
+                                .buttonColors(
+                                    containerColor =
+                                        Color(
+                                            0xFFEF8A3A
+                                        ),
+                                    contentColor =
+                                        Color.White
+                                )
+                    ) {
+
+                        Text(
+                            text =
+                                "＋  습관 만들기",
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .titleMedium,
+                            fontWeight =
+                                FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -457,113 +401,85 @@ fun HabitScreen(
     // 생성 / 수정 다이얼로그
     if (showHabitDialog) {
 
-        AlertDialog(
-            onDismissRequest = {
+        HabitEditorDialog(
+            isEditing =
+                uiState.editingHabitId != null,
+
+            selectedCategory =
+                selectedCategory,
+
+            title =
+                uiState.title,
+
+            description =
+                uiState.description,
+
+            isLoading =
+                uiState.isLoading,
+
+            onCategorySelected = { category ->
+
+                selectedCategory = category
+
+                // 새 습관일 때 카테고리 기본 이름 입력
+                if (uiState.editingHabitId == null) {
+
+                    viewModel.onTitleChange(
+                        category.defaultTitle
+                    )
+                }
+            },
+
+            onTitleChange =
+                viewModel::onTitleChange,
+
+            onDescriptionChange =
+                viewModel::onDescriptionChange,
+
+            onDismiss = {
 
                 showHabitDialog = false
+
+                selectedCategory = null
 
                 viewModel.cancelEditing()
             },
 
-            title = {
+            onConfirm = {
 
-                Text(
-                    text = if (uiState.editingHabitId == null) {
-                        "새 습관 만들기"
-                    } else {
-                        "습관 수정하기"
-                    }
-                )
-            },
-
-            text = {
-
-                Column {
-
-                    // 습관 이름
-                    OutlinedTextField(
-                        value = uiState.title,
-                        onValueChange = viewModel::onTitleChange,
-                        label = {
-                            Text("습관 이름")
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(
-                            RoutineDimens.ItemSpacing
-                        )
-                    )
-
-                    // 습관 설명
-                    OutlinedTextField(
-                        value = uiState.description,
-                        onValueChange = viewModel::onDescriptionChange,
-                        label = {
-                            Text("설명")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-
-            confirmButton = {
-
-                Button(
-                    onClick = {
-
-                        if (uiState.editingHabitId == null) {
-
-                            viewModel.createHabit()
-
-                        } else {
-
-                            viewModel.updateHabit()
-                        }
-
-                        showHabitDialog = false
-                    },
-                    enabled = !uiState.isLoading
+                if (
+                    uiState.editingHabitId == null
                 ) {
 
-                    Text(
-                        text = if (uiState.editingHabitId == null) {
-                            "추가"
-                        } else {
-                            "수정 완료"
-                        }
-                    )
+                    viewModel.createHabit()
+
+                } else {
+
+                    viewModel.updateHabit()
                 }
-            },
 
-            dismissButton = {
+                showHabitDialog = false
 
-                TextButton(
-                    onClick = {
-
-                        showHabitDialog = false
-
-                        viewModel.cancelEditing()
-                    }
-                ) {
-                    Text("취소")
-                }
+                selectedCategory = null
             }
         )
     }
 
-    // 삭제 확인 다이얼로그
-    if (deleteHabitId != null) {
+    // 삭제 확인
+    if (
+        deleteHabitId != null
+    ) {
 
         AlertDialog(
             onDismissRequest = {
-                deleteHabitId = null
+                deleteHabitId =
+                    null
             },
 
             title = {
-                Text("습관 삭제")
+                Text(
+                    "습관 삭제"
+                )
             },
 
             text = {
@@ -577,18 +493,28 @@ fun HabitScreen(
                 TextButton(
                     onClick = {
 
-                        deleteHabitId?.let { habitId ->
-                            viewModel.deleteHabit(habitId)
-                        }
+                        deleteHabitId
+                            ?.let {
+                                    habitId ->
 
-                        deleteHabitId = null
+                                viewModel
+                                    .deleteHabit(
+                                        habitId
+                                    )
+                            }
+
+                        deleteHabitId =
+                            null
                     }
                 ) {
 
                     Text(
-                        text = "삭제",
+                        text =
+                            "삭제",
                         color =
-                            MaterialTheme.colorScheme.error
+                            MaterialTheme
+                                .colorScheme
+                                .error
                     )
                 }
             },
@@ -597,12 +523,1663 @@ fun HabitScreen(
 
                 TextButton(
                     onClick = {
-                        deleteHabitId = null
+                        deleteHabitId =
+                            null
                     }
                 ) {
-                    Text("취소")
+
+                    Text(
+                        "취소"
+                    )
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun HabitHeader() {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .background(
+                Color(0xFFF7F4EA)
+            )
+    ) {
+
+        // 오른쪽 산 / 해
+        HabitLandscape(
+            modifier = Modifier
+                .align(
+                    Alignment.BottomEnd
+                )
+                .width(230.dp)
+                .height(140.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .align(
+                    Alignment.CenterStart
+                )
+                .padding(
+                    start = 20.dp,
+                    end = 20.dp
+                )
+        ) {
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = "습관",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .displaySmall,
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        Color(
+                            0xFF073D32
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            8.dp
+                        )
+                )
+
+                Text(
+                    text = "🌱",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .headlineMedium
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        6.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "오늘의 루틴을 관리해보세요",
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyLarge,
+                color =
+                    Color(
+                        0xFF75827A
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun HabitLandscape(
+    modifier: Modifier =
+        Modifier
+) {
+
+    Canvas(
+        modifier =
+            modifier
+    ) {
+
+        // 해
+        drawCircle(
+            color =
+                Color(
+                    0xFFF5B46F
+                ),
+            radius =
+                size.width *
+                        0.12f,
+            center =
+                Offset(
+                    size.width *
+                            0.72f,
+                    size.height *
+                            0.33f
+                )
+        )
+
+        // 뒤쪽 산
+        val back =
+            Path().apply {
+
+                moveTo(
+                    0f,
+                    size.height
+                )
+
+                lineTo(
+                    0f,
+                    size.height *
+                            0.73f
+                )
+
+                cubicTo(
+                    size.width *
+                            0.22f,
+                    size.height *
+                            0.54f,
+                    size.width *
+                            0.35f,
+                    size.height *
+                            0.48f,
+                    size.width *
+                            0.50f,
+                    size.height *
+                            0.62f
+                )
+
+                cubicTo(
+                    size.width *
+                            0.67f,
+                    size.height *
+                            0.78f,
+                    size.width *
+                            0.81f,
+                    size.height *
+                            0.48f,
+                    size.width,
+                    size.height *
+                            0.56f
+                )
+
+                lineTo(
+                    size.width,
+                    size.height
+                )
+
+                close()
+            }
+
+        drawPath(
+            path =
+                back,
+            color =
+                Color(
+                    0xFFD8E2D3
+                )
+        )
+
+        // 앞쪽 산
+        val front =
+            Path().apply {
+
+                moveTo(
+                    0f,
+                    size.height
+                )
+
+                lineTo(
+                    0f,
+                    size.height *
+                            0.86f
+                )
+
+                cubicTo(
+                    size.width *
+                            0.20f,
+                    size.height *
+                            0.67f,
+                    size.width *
+                            0.40f,
+                    size.height *
+                            0.66f,
+                    size.width *
+                            0.57f,
+                    size.height *
+                            0.82f
+                )
+
+                cubicTo(
+                    size.width *
+                            0.72f,
+                    size.height *
+                            0.95f,
+                    size.width *
+                            0.89f,
+                    size.height *
+                            0.70f,
+                    size.width,
+                    size.height *
+                            0.72f
+                )
+
+                lineTo(
+                    size.width,
+                    size.height
+                )
+
+                close()
+            }
+
+        drawPath(
+            path =
+                front,
+            color =
+                Color(
+                    0xFFACC1A5
+                )
+        )
+    }
+}
+
+@Composable
+private fun HabitProgressCard(
+    completedCount: Int,
+    totalCount: Int,
+    completionRate: Int
+) {
+
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(
+                28.dp
+            ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults
+                .cardElevation(
+                    defaultElevation =
+                        2.dp
+                )
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            HabitProgressCircle(
+                completedCount =
+                    completedCount,
+                totalCount =
+                    totalCount,
+                completionRate =
+                    completionRate
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        22.dp
+                    )
+            )
+
+            Column(
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
+            ) {
+
+                Text(
+                    text =
+                        if (
+                            completionRate ==
+                            100
+                        ) {
+                            "완벽해요!"
+                        } else {
+                            "좋아요!"
+                        },
+                    style =
+                        MaterialTheme
+                            .typography
+                            .titleLarge,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF153E34
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            4.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        if (
+                            totalCount == 0
+                        ) {
+                            "첫 습관을 만들어보세요."
+                        } else {
+                            "오늘도 조금씩 나아가고 있어요."
+                        },
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodyMedium,
+                    color =
+                        Color(
+                            0xFF607269
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            16.dp
+                        )
+                )
+
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    LinearProgressIndicator(
+                        progress = {
+                            (
+                                    completionRate /
+                                            100f
+                                    ).coerceIn(
+                                    0f,
+                                    1f
+                                )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(10.dp)
+                            .clip(
+                                CircleShape
+                            ),
+                        color =
+                            Color(
+                                0xFF819A80
+                            ),
+                        trackColor =
+                            Color(
+                                0xFFECEDE8
+                            )
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                12.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "$completionRate%",
+                        color =
+                            Color(
+                                0xFF617067
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HabitProgressCircle(
+    completedCount: Int,
+    totalCount: Int,
+    completionRate: Int
+) {
+
+    Box(
+        modifier =
+            Modifier.size(
+                105.dp
+            ),
+        contentAlignment =
+            Alignment.Center
+    ) {
+
+        CircularProgressIndicator(
+            progress = {
+                (
+                        completionRate /
+                                100f
+                        ).coerceIn(
+                        0f,
+                        1f
+                    )
+            },
+            modifier =
+                Modifier.fillMaxSize(),
+            strokeWidth =
+                12.dp,
+            color =
+                Color(
+                    0xFF789174
+                ),
+            trackColor =
+                Color(
+                    0xFFEAECE6
+                )
+        )
+
+        Column(
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            Text(
+                text = "🌱"
+            )
+
+            Text(
+                text =
+                    "오늘",
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+                color =
+                    Color(
+                        0xFF66746B
+                    )
+            )
+
+            Text(
+                text =
+                    "$completedCount / $totalCount",
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleLarge,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(
+                        0xFF234A3C
+                    )
+            )
+
+            Text(
+                text =
+                    "완료",
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+                color =
+                    Color(
+                        0xFF66746B
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodayRoutineCard(
+    habits:
+    List<HabitResponse>,
+    onToggle:
+        (HabitResponse) ->
+    Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color.White
+                )
+    ) {
+
+        Column {
+
+            habits.forEachIndexed {
+                    index,
+                    habit ->
+
+                TodayRoutineRow(
+                    habit =
+                        habit,
+                    onClick = {
+                        onToggle(
+                            habit
+                        )
+                    }
+                )
+
+                if (
+                    index <
+                    habits.lastIndex
+                ) {
+
+                    HorizontalDivider(
+                        modifier =
+                            Modifier.padding(
+                                horizontal =
+                                    18.dp
+                            ),
+                        color =
+                            Color(
+                                0xFFF0F0ED
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayRoutineRow(
+    habit: HabitResponse,
+    onClick: () -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onClick()
+            }
+            .padding(
+                horizontal =
+                    16.dp,
+                vertical =
+                    14.dp
+            ),
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    if (
+                        habit
+                            .isCompletedToday
+                    ) {
+                        Color(
+                            0xFF849E83
+                        )
+                    } else {
+                        Color
+                            .Transparent
+                    }
+                )
+                .then(
+                    if (
+                        habit
+                            .isCompletedToday
+                    ) {
+                        Modifier
+                    } else {
+                        Modifier
+                            .background(
+                                Color(
+                                    0xFFF2F2EF
+                                ),
+                                CircleShape
+                            )
+                    }
+                ),
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text =
+                    if (
+                        habit
+                            .isCompletedToday
+                    ) {
+                        "✓"
+                    } else {
+                        "○"
+                    },
+                color =
+                    if (
+                        habit
+                            .isCompletedToday
+                    ) {
+                        Color.White
+                    } else {
+                        Color(
+                            0xFF9B9F9B
+                        )
+                    },
+                fontWeight =
+                    FontWeight.Bold
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.width(
+                    12.dp
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color(
+                        0xFFF4F6F0
+                    )
+                ),
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text =
+                    habitIcon(
+                        habit.title
+                    ),
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleLarge
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.width(
+                    12.dp
+                )
+        )
+
+        Column(
+            modifier =
+                Modifier.weight(
+                    1f
+                )
+        ) {
+
+            Text(
+                text =
+                    habit.title,
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleMedium,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(
+                        0xFF25352E
+                    )
+            )
+
+            if (
+                !habit.description
+                    .isNullOrBlank()
+            ) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            3.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        habit.description,
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+                    color =
+                        Color(
+                            0xFF8A918C
+                        ),
+                    maxLines = 1,
+                    overflow =
+                        TextOverflow
+                            .Ellipsis
+                )
+            }
+        }
+
+        Surface(
+            shape =
+                RoundedCornerShape(
+                    50.dp
+                ),
+            color =
+                if (
+                    habit
+                        .isCompletedToday
+                ) {
+                    Color(
+                        0xFFE7EFE3
+                    )
+                } else {
+                    Color(
+                        0xFFFFEEE1
+                    )
+                }
+        ) {
+
+            Text(
+                text =
+                    if (
+                        habit
+                            .isCompletedToday
+                    ) {
+                        "완료"
+                    } else {
+                        "진행중"
+                    },
+                modifier =
+                    Modifier.padding(
+                        horizontal =
+                            12.dp,
+                        vertical =
+                            6.dp
+                    ),
+                style =
+                    MaterialTheme
+                        .typography
+                        .labelMedium,
+                color =
+                    if (
+                        habit
+                            .isCompletedToday
+                    ) {
+                        Color(
+                            0xFF557454
+                        )
+                    } else {
+                        Color(
+                            0xFFC36A2D
+                        )
+                    }
+            )
+        }
+    }
+}
+
+@Composable
+private fun HabitManagementRow(
+    habits:
+    List<HabitResponse>,
+    onEdit:
+        (Long) -> Unit,
+    onDelete:
+        (Long) -> Unit
+) {
+
+    LazyRow(
+        contentPadding =
+            PaddingValues(
+                start = 20.dp,
+                end = 20.dp
+            ),
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                12.dp
+            )
+    ) {
+
+        items(
+            items =
+                habits,
+            key = {
+                it.id
+            }
+        ) { habit ->
+
+            HabitManagementCard(
+                habit =
+                    habit,
+                onEdit = {
+                    onEdit(
+                        habit.id
+                    )
+                },
+                onDelete = {
+                    onDelete(
+                        habit.id
+                    )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun HabitManagementCard(
+    habit: HabitResponse,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+
+    Card(
+        modifier =
+            Modifier.width(
+                180.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color.White
+                ),
+        elevation =
+            CardDefaults
+                .cardElevation(
+                    defaultElevation =
+                        1.dp
+                )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    16.dp
+                )
+        ) {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(
+                            46.dp
+                        )
+                        .clip(
+                            RoundedCornerShape(
+                                15.dp
+                            )
+                        )
+                        .background(
+                            Color(
+                                0xFFF0F4EA
+                            )
+                        ),
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Text(
+                        text =
+                            habitIcon(
+                                habit.title
+                            ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .titleLarge
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                )
+
+                Text(
+                    text =
+                        "•••",
+                    color =
+                        Color(
+                            0xFF8C928E
+                        )
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        14.dp
+                    )
+            )
+
+            Text(
+                text =
+                    habit.title,
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleMedium,
+                fontWeight =
+                    FontWeight.Bold,
+                maxLines = 1,
+                overflow =
+                    TextOverflow.Ellipsis,
+                color =
+                    Color(
+                        0xFF25362F
+                    )
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        5.dp
+                    )
+            )
+
+            Text(
+                text =
+                    if (
+                        habit.description
+                            .isNullOrBlank()
+                    ) {
+                        "꾸준히 이어가는 나만의 습관"
+                    } else {
+                        habit.description
+                    },
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+                color =
+                    Color(
+                        0xFF8A918C
+                    ),
+                minLines = 2,
+                maxLines = 2,
+                overflow =
+                    TextOverflow
+                        .Ellipsis
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        16.dp
+                    )
+            )
+
+            Row(
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        6.dp
+                    )
+            ) {
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            onEdit()
+                        },
+                    shape =
+                        RoundedCornerShape(
+                            50.dp
+                        ),
+                    color =
+                        Color(
+                            0xFFF3F3F1
+                        )
+                ) {
+
+                    Text(
+                        text =
+                            "수정",
+                        modifier =
+                            Modifier.padding(
+                                vertical =
+                                    8.dp
+                            ),
+                        textAlign =
+                            androidx.compose.ui
+                                .text.style
+                                .TextAlign.Center,
+                        style =
+                            MaterialTheme
+                                .typography
+                                .labelMedium
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            onDelete()
+                        },
+                    shape =
+                        RoundedCornerShape(
+                            50.dp
+                        ),
+                    color =
+                        Color(
+                            0xFFFFEEE7
+                        )
+                ) {
+
+                    Text(
+                        text =
+                            "삭제",
+                        modifier =
+                            Modifier.padding(
+                                vertical =
+                                    8.dp
+                            ),
+                        textAlign =
+                            androidx.compose.ui
+                                .text.style
+                                .TextAlign.Center,
+                        style =
+                            MaterialTheme
+                                .typography
+                                .labelMedium,
+                        color =
+                            Color(
+                                0xFFC46542
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyHabitCard() {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal =
+                    20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults
+                .cardColors(
+                    containerColor =
+                        Color.White
+                )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    22.dp
+                )
+        ) {
+
+            Text(
+                text =
+                    "아직 등록된 습관이 없어요.",
+                style =
+                    MaterialTheme
+                        .typography
+                        .titleMedium,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        5.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "첫 습관을 만들고 오늘부터 시작해보세요.",
+                color =
+                    Color(
+                        0xFF858D87
+                    )
+            )
+        }
+    }
+}
+
+private enum class HabitCategory(
+    val label: String,
+    val icon: String,
+    val defaultTitle: String
+) {
+
+    WATER(
+        label = "물",
+        icon = "💧",
+        defaultTitle = "물 마시기"
+    ),
+
+    BOOK(
+        label = "책",
+        icon = "📖",
+        defaultTitle = "책 읽기"
+    ),
+
+    SLEEP(
+        label = "잠",
+        icon = "🌙",
+        defaultTitle = "잠자기"
+    ),
+
+    EXERCISE(
+        label = "운동",
+        icon = "🏃",
+        defaultTitle = "운동하기"
+    ),
+
+    STUDY(
+        label = "공부",
+        icon = "📚",
+        defaultTitle = "공부하기"
+    )
+}
+
+private fun habitIcon(
+    title: String
+): String {
+
+    return when {
+
+        title.contains(
+            "물"
+        ) ->
+            "💧"
+
+        title.contains(
+            "책"
+        ) ||
+                title.contains(
+                    "독서"
+                ) ->
+            "📖"
+
+        title.contains(
+            "운동"
+        ) ||
+                title.contains(
+                    "스트레칭"
+                ) ->
+            "🏃"
+
+        title.contains(
+            "잠"
+        ) ||
+                title.contains(
+                    "수면"
+                ) ->
+            "🌙"
+
+        title.contains(
+            "공부"
+        ) ->
+            "📚"
+
+        else ->
+            "🌱"
+    }
+}
+
+@Composable
+private fun HabitEditorDialog(
+    isEditing: Boolean,
+    selectedCategory: HabitCategory?,
+    title: String,
+    description: String,
+    isLoading: Boolean,
+    onCategorySelected: (HabitCategory) -> Unit,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+
+    AlertDialog(
+        onDismissRequest = {
+            onDismiss()
+        },
+
+        shape =
+            RoundedCornerShape(28.dp),
+
+        containerColor =
+            Color(0xFFFAF9F5),
+
+        title = {
+
+            Column {
+
+                Text(
+                    text =
+                        if (isEditing) {
+                            "습관 수정하기"
+                        } else {
+                            "새 습관 만들기"
+                        },
+                    style =
+                        MaterialTheme.typography
+                            .headlineSmall,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(0xFF16392F)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(6.dp)
+                )
+
+                Text(
+                    text =
+                        if (isEditing) {
+                            "내 습관을 조금 더 나에게 맞게 바꿔보세요."
+                        } else {
+                            "작은 습관 하나부터 시작해볼까요?"
+                        },
+                    style =
+                        MaterialTheme.typography
+                            .bodyMedium,
+                    color =
+                        Color(0xFF7A847E)
+                )
+            }
+        },
+
+        text = {
+
+            Column {
+
+                // 카테고리
+                Text(
+                    text = "어떤 습관인가요?",
+                    style =
+                        MaterialTheme.typography
+                            .titleMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(0xFF2A3B33)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
+
+                HabitCategorySelector(
+                    selectedCategory =
+                        selectedCategory,
+                    onCategorySelected =
+                        onCategorySelected
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(22.dp)
+                )
+
+                // 습관 이름
+                Text(
+                    text = "습관 이름",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    color =
+                        Color(0xFF526159)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(7.dp)
+                )
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange =
+                        onTitleChange,
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            "습관 이름을 입력해주세요."
+                        )
+                    },
+                    singleLine = true,
+                    shape =
+                        RoundedCornerShape(16.dp)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(18.dp)
+                )
+
+                // 설명
+                Text(
+                    text = "설명",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    color =
+                        Color(0xFF526159)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(7.dp)
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange =
+                        onDescriptionChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp),
+                    placeholder = {
+
+                        Text(
+                            "이 습관에 대한 짧은 설명을 적어보세요."
+                        )
+                    },
+                    shape =
+                        RoundedCornerShape(16.dp)
+                )
+            }
+        },
+
+        confirmButton = {
+
+            Button(
+                onClick = {
+                    onConfirm()
+                },
+
+                enabled =
+                    !isLoading &&
+                            title.isNotBlank(),
+
+                shape =
+                    RoundedCornerShape(50.dp),
+
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            Color(0xFF718D71),
+                        contentColor =
+                            Color.White
+                    )
+            ) {
+
+                Text(
+                    text =
+                        if (isEditing) {
+                            "수정 완료"
+                        } else {
+                            "습관 추가"
+                        },
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            }
+        },
+
+        dismissButton = {
+
+            TextButton(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+
+                Text(
+                    text = "취소",
+                    color =
+                        Color(0xFF68746D)
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun HabitCategorySelector(
+    selectedCategory: HabitCategory?,
+    onCategorySelected: (HabitCategory) -> Unit
+) {
+
+    Column(
+        verticalArrangement =
+            Arrangement.spacedBy(10.dp)
+    ) {
+
+        // 첫 번째 줄
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            HabitCategoryChip(
+                category =
+                    HabitCategory.WATER,
+                selected =
+                    selectedCategory ==
+                            HabitCategory.WATER,
+                modifier =
+                    Modifier.weight(1f),
+                onClick =
+                    onCategorySelected
+            )
+
+            HabitCategoryChip(
+                category =
+                    HabitCategory.BOOK,
+                selected =
+                    selectedCategory ==
+                            HabitCategory.BOOK,
+                modifier =
+                    Modifier.weight(1f),
+                onClick =
+                    onCategorySelected
+            )
+
+            HabitCategoryChip(
+                category =
+                    HabitCategory.SLEEP,
+                selected =
+                    selectedCategory ==
+                            HabitCategory.SLEEP,
+                modifier =
+                    Modifier.weight(1f),
+                onClick =
+                    onCategorySelected
+            )
+        }
+
+        // 두 번째 줄
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            HabitCategoryChip(
+                category =
+                    HabitCategory.EXERCISE,
+                selected =
+                    selectedCategory ==
+                            HabitCategory.EXERCISE,
+                modifier =
+                    Modifier.weight(1f),
+                onClick =
+                    onCategorySelected
+            )
+
+            HabitCategoryChip(
+                category =
+                    HabitCategory.STUDY,
+                selected =
+                    selectedCategory ==
+                            HabitCategory.STUDY,
+                modifier =
+                    Modifier.weight(1f),
+                onClick =
+                    onCategorySelected
+            )
+
+            // 3칸 정렬을 위한 빈 공간
+            Spacer(
+                modifier =
+                    Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HabitCategoryChip(
+    category: HabitCategory,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: (HabitCategory) -> Unit
+) {
+
+    Surface(
+        modifier = modifier
+            .height(76.dp)
+            .clickable {
+
+                onClick(
+                    category
+                )
+            },
+
+        shape =
+            RoundedCornerShape(18.dp),
+
+        color =
+            if (selected) {
+                Color(0xFFE1EBDC)
+            } else {
+                Color(0xFFF3F3EF)
+            },
+
+        border =
+            if (selected) {
+
+                androidx.compose.foundation.BorderStroke(
+                    width = 1.5.dp,
+                    color =
+                        Color(0xFF789474)
+                )
+
+            } else {
+                null
+            }
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    vertical = 10.dp
+                ),
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.Center
+        ) {
+
+            Text(
+                text =
+                    category.icon,
+                style =
+                    MaterialTheme.typography
+                        .titleLarge
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(3.dp)
+            )
+
+            Text(
+                text =
+                    category.label,
+                style =
+                    MaterialTheme.typography
+                        .labelLarge,
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Medium
+                    },
+                color =
+                    if (selected) {
+                        Color(0xFF476446)
+                    } else {
+                        Color(0xFF68736C)
+                    }
+            )
+        }
     }
 }

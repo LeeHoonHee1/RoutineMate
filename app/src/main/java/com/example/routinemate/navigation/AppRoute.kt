@@ -46,4 +46,16 @@ sealed interface AppRoute {
             return "challenge_detail/$challengeId"
         }
     }
+
+    data object TodayRoutine : AppRoute {
+        override val route =
+            "today_routine"
+    }
+
+    data object ChallengeOverview :
+        AppRoute {
+
+        override val route =
+            "challenge_overview"
+    }
 }
