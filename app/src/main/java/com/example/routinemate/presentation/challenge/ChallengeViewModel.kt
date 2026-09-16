@@ -5,22 +5,26 @@ import androidx.lifecycle.viewModelScope
 import com.example.routinemate.data.remote.dto.challenge.CreateChallengeRequest
 import com.example.routinemate.domain.repository.ChallengeRepository
 import com.example.routinemate.domain.repository.FriendRepository
+import com.example.routinemate.domain.validator.ChallengeValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class ChallengeViewModel @Inject constructor(
     private val challengeRepository: ChallengeRepository,
-    private val friendRepository: FriendRepository
+    private val friendRepository: FriendRepository,
+    private val challengeValidator: ChallengeValidator
 ) : ViewModel() {
 
     private val _uiState =
-        MutableStateFlow(ChallengeUiState())
+        MutableStateFlow(
+            ChallengeUiState()
+        )
 
     val uiState: StateFlow<ChallengeUiState> =
         _uiState.asStateFlow()
@@ -29,7 +33,7 @@ class ChallengeViewModel @Inject constructor(
         loadChallengeData()
     }
 
-    // 챌린지 화면에 필요한 데이터 조회
+    // 챌린지 화면 데이터 조회
     fun loadChallengeData() {
 
         viewModelScope.launch {
@@ -44,20 +48,27 @@ class ChallengeViewModel @Inject constructor(
             try {
 
                 val challenges =
-                    challengeRepository.getMyChallenges()
+                    challengeRepository
+                        .getMyChallenges()
 
                 val invitations =
-                    challengeRepository.getMyInvitations()
+                    challengeRepository
+                        .getMyInvitations()
 
                 val friends =
-                    friendRepository.getFriends()
+                    friendRepository
+                        .getFriends()
 
                 _uiState.update {
                     it.copy(
-                        challenges = challenges,
-                        invitations = invitations,
-                        friends = friends,
-                        isLoading = false
+                        challenges =
+                            challenges,
+                        invitations =
+                            invitations,
+                        friends =
+                            friends,
+                        isLoading =
+                            false
                     )
                 }
 
@@ -81,7 +92,13 @@ class ChallengeViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                title = value
+                title =
+                    value.take(
+                        ChallengeValidator
+                            .TITLE_MAX_LENGTH
+                    ),
+                inputErrorMessage =
+                    null
             )
         }
     }
@@ -93,7 +110,13 @@ class ChallengeViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                description = value
+                description =
+                    value.take(
+                        ChallengeValidator
+                            .DESCRIPTION_MAX_LENGTH
+                    ),
+                inputErrorMessage =
+                    null
             )
         }
     }
@@ -105,7 +128,13 @@ class ChallengeViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                startDate = value
+                startDate =
+                    value.take(
+                        ChallengeValidator
+                            .DATE_MAX_LENGTH
+                    ),
+                inputErrorMessage =
+                    null
             )
         }
     }
@@ -117,7 +146,13 @@ class ChallengeViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                endDate = value
+                endDate =
+                    value.take(
+                        ChallengeValidator
+                            .DATE_MAX_LENGTH
+                    ),
+                inputErrorMessage =
+                    null
             )
         }
     }
@@ -125,29 +160,45 @@ class ChallengeViewModel @Inject constructor(
     // 챌린지 생성
     fun createChallenge() {
 
-        val state = _uiState.value
-
-        if (state.title.isBlank()) {
-
-            _uiState.update {
-                it.copy(
-                    errorMessage =
-                        "챌린지 이름을 입력해주세요."
-                )
-            }
-
+        // 저장 버튼 연타 방지
+        if (
+            _uiState.value.isSubmitting
+        ) {
             return
         }
 
+        val state =
+            _uiState.value
+
+        val title =
+            state.title.trim()
+
+        val description =
+            state.description.trim()
+
+        val startDate =
+            state.startDate.trim()
+
+        val endDate =
+            state.endDate.trim()
+
+        val validationMessage =
+            challengeValidator.validate(
+                title = title,
+                description = description,
+                startDate = startDate,
+                endDate = endDate
+            )
+
+        // 입력값 검증 실패
         if (
-            state.startDate.isBlank() ||
-            state.endDate.isBlank()
+            validationMessage != null
         ) {
 
             _uiState.update {
                 it.copy(
-                    errorMessage =
-                        "시작일과 종료일을 입력해주세요."
+                    inputErrorMessage =
+                        validationMessage
                 )
             }
 
@@ -158,48 +209,56 @@ class ChallengeViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    isLoading = true,
+                    isSubmitting = true,
+                    inputErrorMessage = null,
                     errorMessage = null
                 )
             }
 
             try {
 
-                challengeRepository.createChallenge(
-                    CreateChallengeRequest(
-                        title = state.title.trim(),
-                        description =
-                            state.description
-                                .trim()
-                                .takeIf {
+                challengeRepository
+                    .createChallenge(
+                        CreateChallengeRequest(
+                            title = title,
+
+                            description =
+                                description.takeIf {
                                     it.isNotBlank()
                                 },
-                        startDate =
-                            state.startDate.trim(),
-                        endDate =
-                            state.endDate.trim()
-                    )
-                )
 
+                            startDate =
+                                startDate,
+
+                            endDate =
+                                endDate
+                        )
+                    )
+
+                /*
+                 * 생성 자체는 성공했으므로
+                 * 입력값을 먼저 초기화한다.
+                 */
                 _uiState.update {
                     it.copy(
                         title = "",
                         description = "",
                         startDate = "",
                         endDate = "",
+                        isSubmitting = false,
                         successMessage =
-                            "챌린지를 만들었습니다.",
-                        isLoading = false
+                            "챌린지를 만들었습니다."
                     )
                 }
 
+                // 최신 목록 조회
                 refreshChallenges()
 
             } catch (e: Exception) {
 
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
+                        isSubmitting = false,
                         errorMessage =
                             "챌린지 생성에 실패했습니다."
                     )
@@ -214,17 +273,36 @@ class ChallengeViewModel @Inject constructor(
         friendId: Long
     ) {
 
+        // 같은 친구에게 초대 요청 중이면 중복 방지
+        if (
+            _uiState.value.invitingFriendId ==
+            friendId
+        ) {
+            return
+        }
+
         viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    invitingFriendId = friendId,
+                    errorMessage = null
+                )
+            }
 
             try {
 
-                challengeRepository.inviteFriend(
-                    challengeId = challengeId,
-                    friendId = friendId
-                )
+                challengeRepository
+                    .inviteFriend(
+                        challengeId =
+                            challengeId,
+                        friendId =
+                            friendId
+                    )
 
                 _uiState.update {
                     it.copy(
+                        invitingFriendId = null,
                         successMessage =
                             "친구에게 챌린지 초대를 보냈습니다."
                     )
@@ -234,6 +312,7 @@ class ChallengeViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        invitingFriendId = null,
                         errorMessage =
                             "친구를 초대하지 못했습니다."
                     )
@@ -247,20 +326,43 @@ class ChallengeViewModel @Inject constructor(
         memberId: Long
     ) {
 
+        // 이미 처리 중인 초대면 중복 방지
+        if (
+            _uiState.value.processingInvitationId ==
+            memberId
+        ) {
+            return
+        }
+
         viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    processingInvitationId =
+                        memberId,
+                    errorMessage = null
+                )
+            }
 
             try {
 
-                challengeRepository.acceptInvitation(
-                    memberId = memberId
-                )
+                challengeRepository
+                    .acceptInvitation(
+                        memberId =
+                            memberId
+                    )
 
                 _uiState.update { state ->
+
                     state.copy(
                         invitations =
-                            state.invitations.filter {
-                                it.memberId != memberId
-                            },
+                            state.invitations
+                                .filter {
+                                    it.memberId !=
+                                            memberId
+                                },
+                        processingInvitationId =
+                            null,
                         successMessage =
                             "챌린지 초대를 수락했습니다."
                     )
@@ -272,6 +374,8 @@ class ChallengeViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        processingInvitationId =
+                            null,
                         errorMessage =
                             "챌린지 초대를 수락하지 못했습니다."
                     )
@@ -285,20 +389,43 @@ class ChallengeViewModel @Inject constructor(
         memberId: Long
     ) {
 
+        // 이미 처리 중인 초대면 중복 방지
+        if (
+            _uiState.value.processingInvitationId ==
+            memberId
+        ) {
+            return
+        }
+
         viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    processingInvitationId =
+                        memberId,
+                    errorMessage = null
+                )
+            }
 
             try {
 
-                challengeRepository.rejectInvitation(
-                    memberId = memberId
-                )
+                challengeRepository
+                    .rejectInvitation(
+                        memberId =
+                            memberId
+                    )
 
                 _uiState.update { state ->
+
                     state.copy(
                         invitations =
-                            state.invitations.filter {
-                                it.memberId != memberId
-                            },
+                            state.invitations
+                                .filter {
+                                    it.memberId !=
+                                            memberId
+                                },
+                        processingInvitationId =
+                            null,
                         successMessage =
                             "챌린지 초대를 거절했습니다."
                     )
@@ -308,6 +435,8 @@ class ChallengeViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        processingInvitationId =
+                            null,
                         errorMessage =
                             "챌린지 초대를 거절하지 못했습니다."
                     )
@@ -322,20 +451,26 @@ class ChallengeViewModel @Inject constructor(
         try {
 
             val challenges =
-                challengeRepository.getMyChallenges()
+                challengeRepository
+                    .getMyChallenges()
 
             _uiState.update {
                 it.copy(
-                    challenges = challenges
+                    challenges =
+                        challenges
                 )
             }
 
         } catch (e: Exception) {
 
+            /*
+             * 챌린지 생성 자체는 이미 성공했을 수 있으므로
+             * 생성 실패라고 표시하면 안 된다.
+             */
             _uiState.update {
                 it.copy(
                     errorMessage =
-                        "챌린지 목록을 새로고침하지 못했습니다."
+                        "변경사항은 저장됐지만 챌린지 목록을 새로고침하지 못했습니다."
                 )
             }
         }

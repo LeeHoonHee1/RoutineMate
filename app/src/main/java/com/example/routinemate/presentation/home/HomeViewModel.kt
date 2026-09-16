@@ -6,13 +6,15 @@ import com.example.routinemate.domain.repository.ChallengeRepository
 import com.example.routinemate.domain.repository.HabitRepository
 import com.example.routinemate.domain.repository.StatisticsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlin.math.roundToInt
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import kotlin.math.roundToInt
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -37,23 +39,20 @@ class HomeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = true,
-                    errorMessage = null
+
+                    habitErrorMessage = null,
+                    statisticsErrorMessage = null,
+                    challengeErrorMessage = null,
+                    actionErrorMessage = null
                 )
             }
 
-            try {
+            refreshHomeData()
 
-                refreshHomeData()
-
-            } catch (e: Exception) {
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage =
-                            "홈 정보를 불러오지 못했습니다."
-                    )
-                }
+            _uiState.update {
+                it.copy(
+                    isLoading = false
+                )
             }
         }
     }
@@ -68,8 +67,7 @@ class HomeViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    isLoading = true,
-                    errorMessage = null
+                    actionErrorMessage = null
                 )
             }
 
@@ -90,14 +88,18 @@ class HomeViewModel @Inject constructor(
                         )
                 }
 
-                refreshHomeData()
+                // 습관 관련 데이터만 다시 조회
+                refreshHabitData()
+
+                // 완료 결과가 통계에도 영향을 주므로
+                // 통계도 다시 조회
+                refreshStatisticsData()
 
             } catch (e: Exception) {
 
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
-                        errorMessage =
+                        actionErrorMessage =
                             "습관 완료 상태를 변경하지 못했습니다."
                     )
                 }
@@ -105,101 +107,232 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // Home 데이터 실제 조회
+    // 홈 전체 조회
     private suspend fun refreshHomeData() {
 
-        // 오늘 습관
-        val habits =
-            habitRepository.getHabits()
+        /*
+         * 서로 독립적인 데이터이므로
+         * 각각 실패해도 다른 영역은 계속 조회한다.
+         */
+        coroutineScope {
 
-        // 최근 7일 통계
-        val weeklyStatistics =
-            statisticsRepository
-                .getWeeklyStatistics()
+            val habitJob =
+                async {
+                    refreshHabitData()
+                }
 
-        // 내가 참여 중인 진행 챌린지
-        val homeChallenges =
-            challengeRepository
-                .getHomeChallenges()
+            val statisticsJob =
+                async {
+                    refreshStatisticsData()
+                }
 
-        // 오늘 완료한 습관 수
-        val completedCount =
-            habits.count { habit ->
-                habit.isCompletedToday
+            val challengeJob =
+                async {
+                    refreshChallengeData()
+                }
+
+            habitJob.await()
+            statisticsJob.await()
+            challengeJob.await()
+        }
+    }
+
+    // 습관 영역 조회
+    private suspend fun refreshHabitData() {
+
+        try {
+
+            val habits =
+                habitRepository.getHabits()
+
+            val completedCount =
+                habits.count { habit ->
+                    habit.isCompletedToday
+                }
+
+            val todayCompletionRate =
+                if (habits.isEmpty()) {
+
+                    0
+
+                } else {
+
+                    (
+                            completedCount *
+                                    100.0 /
+                                    habits.size
+                            ).roundToInt()
+                }
+
+            _uiState.update {
+
+                it.copy(
+                    todayHabits =
+                        habits,
+
+                    totalHabitCount =
+                        habits.size,
+
+                    completedHabitCount =
+                        completedCount,
+
+                    todayCompletionRate =
+                        todayCompletionRate,
+
+                    habitErrorMessage =
+                        null
+                )
             }
 
-        // 오늘 달성률
-        val todayCompletionRate =
-            if (habits.isEmpty()) {
+        } catch (e: Exception) {
 
-                0
+            _uiState.update {
 
-            } else {
-
-                (
-                        completedCount * 100.0 /
-                                habits.size
-                        ).roundToInt()
+                it.copy(
+                    habitErrorMessage =
+                        "오늘의 습관을 불러오지 못했습니다."
+                )
             }
+        }
+    }
 
-        // 최근 7일 평균
-        val weeklyAverageCompletionRate =
-            if (
-                weeklyStatistics.isEmpty()
-            ) {
+    // 통계 영역 조회
+    private suspend fun refreshStatisticsData() {
 
-                0
+        try {
 
-            } else {
+            val weeklyStatistics =
+                statisticsRepository
+                    .getWeeklyStatistics()
 
+            val weeklyAverageCompletionRate =
+                if (
+                    weeklyStatistics.isEmpty()
+                ) {
+
+                    0
+
+                } else {
+
+                    weeklyStatistics
+                        .map { statistics ->
+                            statistics.completionRate
+                        }
+                        .average()
+                        .roundToInt()
+                }
+
+            val weeklyTotalCompletedCount =
                 weeklyStatistics
-                    .map { statistics ->
+                    .sumOf { statistics ->
+                        statistics
+                            .completedHabitCount
+                    }
+
+            val bestDay =
+                weeklyStatistics
+                    .filter { statistics ->
+                        statistics.completionRate > 0
+                    }
+                    .maxByOrNull { statistics ->
                         statistics.completionRate
                     }
-                    .average()
-                    .roundToInt()
+                    ?.date
+
+            _uiState.update {
+
+                it.copy(
+                    weeklyStatistics =
+                        weeklyStatistics,
+
+                    weeklyAverageCompletionRate =
+                        weeklyAverageCompletionRate,
+
+                    weeklyTotalCompletedCount =
+                        weeklyTotalCompletedCount,
+
+                    bestDay =
+                        bestDay,
+
+                    statisticsErrorMessage =
+                        null
+                )
             }
 
-        // 최근 7일 총 완료
-        val weeklyTotalCompletedCount =
-            weeklyStatistics
-                .sumOf { statistics ->
-                    statistics
-                        .completedHabitCount
-                }
+        } catch (e: Exception) {
 
-        // 가장 잘한 날
-        val bestDay =
-            weeklyStatistics
-                .filter { statistics ->
-                    statistics.completionRate > 0
-                }
-                .maxByOrNull { statistics ->
-                    statistics.completionRate
-                }
-                ?.date
+            _uiState.update {
 
-        // Home 상태 갱신
+                it.copy(
+                    statisticsErrorMessage =
+                        "이번 주 통계를 불러오지 못했습니다."
+                )
+            }
+        }
+    }
+
+    // 챌린지 영역 조회
+    private suspend fun refreshChallengeData() {
+
+        try {
+
+            val homeChallenges =
+                challengeRepository
+                    .getHomeChallenges()
+
+            _uiState.update {
+
+                it.copy(
+                    homeChallenges =
+                        homeChallenges,
+
+                    challengeErrorMessage =
+                        null
+                )
+            }
+
+        } catch (e: Exception) {
+
+            _uiState.update {
+
+                it.copy(
+                    challengeErrorMessage =
+                        "챌린지 정보를 불러오지 못했습니다."
+                )
+            }
+        }
+    }
+
+    // 습관 영역 다시 시도
+    fun retryHabitData() {
+
+        viewModelScope.launch {
+            refreshHabitData()
+        }
+    }
+
+    // 통계 영역 다시 시도
+    fun retryStatisticsData() {
+
+        viewModelScope.launch {
+            refreshStatisticsData()
+        }
+    }
+
+    // 챌린지 영역 다시 시도
+    fun retryChallengeData() {
+
+        viewModelScope.launch {
+            refreshChallengeData()
+        }
+    }
+
+    // 액션 오류 메시지 제거
+    fun clearActionError() {
+
         _uiState.update {
-
             it.copy(
-                todayHabits = habits,
-                homeChallenges =
-                    homeChallenges,
-                totalHabitCount =
-                    habits.size,
-                completedHabitCount =
-                    completedCount,
-                todayCompletionRate =
-                    todayCompletionRate,
-                weeklyStatistics =
-                    weeklyStatistics,
-                weeklyAverageCompletionRate =
-                    weeklyAverageCompletionRate,
-                weeklyTotalCompletedCount =
-                    weeklyTotalCompletedCount,
-                bestDay = bestDay,
-                isLoading = false
+                actionErrorMessage = null
             )
         }
     }

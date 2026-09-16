@@ -511,29 +511,84 @@ fun ProfileScreen(
 
             text = {
 
-                OutlinedTextField(
-                    value =
-                        uiState.nicknameInput,
-                    onValueChange = {
+                Column {
 
-                        viewModel
-                            .updateNicknameInput(
-                                it
+                    OutlinedTextField(
+                        value =
+                            uiState.nicknameInput,
+
+                        onValueChange = {
+
+                            viewModel
+                                .updateNicknameInput(
+                                    it
+                                )
+                        },
+
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        label = {
+                            Text(
+                                "닉네임"
                             )
-                    },
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    label = {
+                        },
+
+                        // 검증 오류가 있으면 빨간 테두리
+                        isError =
+                            uiState.nicknameErrorMessage !=
+                                    null,
+
+                        // 저장 중에는 수정 불가
+                        enabled =
+                            !uiState.isSavingNickname,
+
+                        shape =
+                            RoundedCornerShape(
+                                16.dp
+                            ),
+
+                        singleLine =
+                            true
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(5.dp)
+                    )
+
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                    ) {
+
+                        // 입력 오류
                         Text(
-                            "닉네임"
+                            text =
+                                uiState.nicknameErrorMessage
+                                    ?: "",
+                            modifier =
+                                Modifier.weight(1f),
+                            style =
+                                MaterialTheme.typography
+                                    .bodySmall,
+                            color =
+                                MaterialTheme.colorScheme
+                                    .error
                         )
-                    },
-                    shape =
-                        RoundedCornerShape(
-                            16.dp
-                        ),
-                    singleLine = true
-                )
+
+                        // 글자 수 표시
+                        Text(
+                            text =
+                                "${uiState.nicknameInput.length} / 20",
+                            style =
+                                MaterialTheme.typography
+                                    .bodySmall,
+                            color =
+                                Color(0xFF8A918C)
+                        )
+                    }
+                }
             },
 
             confirmButton = {
@@ -544,10 +599,16 @@ fun ProfileScreen(
                         viewModel
                             .saveNickname()
                     },
+
+                    // 저장 중에는 다시 클릭 불가
+                    enabled =
+                        !uiState.isSavingNickname,
+
                     shape =
                         RoundedCornerShape(
                             50.dp
                         ),
+
                     colors =
                         ButtonDefaults
                             .buttonColors(
@@ -558,9 +619,34 @@ fun ProfileScreen(
                             )
                 ) {
 
-                    Text(
-                        "저장"
-                    )
+                    if (
+                        uiState.isSavingNickname
+                    ) {
+
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(18.dp),
+                            strokeWidth =
+                                2.dp,
+                            color =
+                                Color.White
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(8.dp)
+                        )
+
+                        Text(
+                            "저장 중..."
+                        )
+
+                    } else {
+
+                        Text(
+                            "저장"
+                        )
+                    }
                 }
             },
 
@@ -571,15 +657,16 @@ fun ProfileScreen(
 
                         viewModel
                             .cancelNicknameEdit()
-                    }
+                    },
+
+                    enabled =
+                        !uiState.isSavingNickname
                 ) {
 
                     Text(
                         text = "취소",
                         color =
-                            Color(
-                                0xFF69736D
-                            )
+                            Color(0xFF69736D)
                     )
                 }
             }

@@ -17,12 +17,18 @@ data class ProfileUiState(
     // 프로필 수정 모드
     val isEditingNickname: Boolean = false,
 
-    // 로딩 상태
+    // 화면 로딩 상태
     val isLoading: Boolean = false,
+
+    // 닉네임 저장 중
+    val isSavingNickname: Boolean = false,
+
+    // 닉네임 입력 검증 오류
+    val nicknameErrorMessage: String? = null,
 
     // 성공 메시지
     val successMessage: String? = null,
 
-    // 에러 메시지
+    // 서버 / 네트워크 오류
     val errorMessage: String? = null
 )

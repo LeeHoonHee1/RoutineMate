@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -78,7 +80,7 @@ fun HomeScreen(
             )
     ) {
 
-        // 상단 브랜드 영역
+        // 상단 브랜드 배경
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -95,12 +97,16 @@ fun HomeScreen(
         )
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                bottom = 32.dp
-            ),
+            modifier =
+                Modifier.fillMaxSize(),
+            contentPadding =
+                PaddingValues(
+                    bottom = 32.dp
+                ),
             verticalArrangement =
-                Arrangement.spacedBy(24.dp)
+                Arrangement.spacedBy(
+                    24.dp
+                )
         ) {
 
             // 상단 브랜드 / 히어로
@@ -125,64 +131,67 @@ fun HomeScreen(
                 }
             }
 
-            when {
+            // 최초 로딩 때만 전체 로딩 카드 표시
+            if (uiState.isLoading) {
 
-                uiState.isLoading -> {
+                item {
 
-                    item {
+                    Box(
+                        modifier = Modifier.padding(
+                            horizontal = 20.dp
+                        )
+                    ) {
 
-                        Box(
-                            modifier = Modifier.padding(
-                                horizontal = 20.dp
-                            )
-                        ) {
-
-                            HomeLoadingCard()
-                        }
+                        HomeLoadingCard()
                     }
                 }
 
-                uiState.errorMessage != null -> {
+            } else {
 
-                    item {
+                // ==============================
+                // 오늘의 진행
+                // ==============================
 
-                        Box(
-                            modifier = Modifier.padding(
-                                horizontal = 20.dp
-                            )
+                item {
+
+                    Box(
+                        modifier = Modifier.padding(
+                            horizontal = 20.dp
+                        )
+                    ) {
+
+                        if (
+                            uiState.habitErrorMessage != null
                         ) {
 
-                            HomeErrorCard(
+                            SectionErrorCard(
+                                title =
+                                    "오늘의 진행을 불러오지 못했어요.",
                                 message =
-                                    uiState.errorMessage
-                                        ?: "홈 정보를 불러오지 못했습니다."
+                                    uiState.habitErrorMessage ?: "",
+                                onRetry = {
+                                    viewModel.retryHabitData()
+                                }
                             )
-                        }
-                    }
-                }
 
-                else -> {
-
-                    // 오늘 진행
-                    item {
-
-                        Box(
-                            modifier = Modifier.padding(
-                                horizontal = 20.dp
-                            )
-                        ) {
+                        } else {
 
                             TodayProgressCard(
                                 habits =
                                     uiState.todayHabits,
+
                                 completedCount =
                                     uiState.completedHabitCount,
+
                                 totalCount =
                                     uiState.totalHabitCount,
+
                                 completionRate =
                                     uiState.todayCompletionRate,
+
                                 onViewHabitsClick =
                                     onHabitClick,
+
                                 onToggleHabit = {
                                         habitId,
                                         isCompletedToday ->
@@ -198,52 +207,137 @@ fun HomeScreen(
                             )
                         }
                     }
+                }
 
-                    // 챌린지 헤더
+                // 습관 완료/취소 요청 자체가 실패했을 때
+                if (
+                    uiState.actionErrorMessage != null
+                ) {
+
                     item {
 
-                        ChallengeSectionHeader(
-                            onCreateClick =
-                                onChallengeCreateClick,
-                            onViewAllClick =
-                                onChallengeClick
+                        ActionErrorCard(
+                            message =
+                                uiState.actionErrorMessage ?: "",
+                            onDismiss = {
+                                viewModel.clearActionError()
+                            }
                         )
                     }
+                }
 
-                    // 챌린지 목록
-                    item {
+                // ==============================
+                // 챌린지
+                // ==============================
 
-                        if (
-                            uiState.homeChallenges
-                                .isEmpty()
+                item {
+
+                    ChallengeSectionHeader(
+                        onCreateClick =
+                            onChallengeCreateClick,
+                        onViewAllClick =
+                            onChallengeClick
+                    )
+                }
+
+                item {
+
+                    if (
+                        uiState.challengeErrorMessage != null
+                    ) {
+
+                        Box(
+                            modifier = Modifier.padding(
+                                horizontal = 20.dp
+                            )
                         ) {
 
-                            EmptyChallengeCard(
-                                onCreateClick =
-                                    onChallengeCreateClick
-                            )
-
-                        } else {
-
-                            ChallengeLazyRow(
-                                challenges =
-                                    uiState.homeChallenges,
-                                onChallengeClick =
-                                    onChallengeDetailClick
+                            SectionErrorCard(
+                                title =
+                                    "챌린지를 불러오지 못했어요.",
+                                message =
+                                    uiState.challengeErrorMessage ?: "",
+                                onRetry = {
+                                    viewModel.retryChallengeData()
+                                }
                             )
                         }
-                    }
 
-                    // 이번 주 성장
-                    item {
+                    } else if (
+                        uiState.homeChallenges.isEmpty()
+                    ) {
+
+                        EmptyChallengeCard(
+                            onCreateClick =
+                                onChallengeCreateClick
+                        )
+
+                    } else {
+
+                        ChallengeLazyRow(
+                            challenges =
+                                uiState.homeChallenges,
+                            onChallengeClick =
+                                onChallengeDetailClick
+                        )
+                    }
+                }
+
+                // ==============================
+                // 이번 주 성장
+                // ==============================
+
+                item {
+
+                    if (
+                        uiState.statisticsErrorMessage != null
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(
+                                horizontal = 20.dp
+                            )
+                        ) {
+
+                            Text(
+                                text =
+                                    "이번 주 성장",
+                                style =
+                                    MaterialTheme.typography
+                                        .titleLarge,
+                                fontWeight =
+                                    FontWeight.Bold,
+                                color =
+                                    Color(0xFF26312B)
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(16.dp)
+                            )
+
+                            SectionErrorCard(
+                                title =
+                                    "이번 주 기록을 불러오지 못했어요.",
+                                message =
+                                    uiState.statisticsErrorMessage ?: "",
+                                onRetry = {
+                                    viewModel.retryStatisticsData()
+                                }
+                            )
+                        }
+
+                    } else {
 
                         WeeklyGrowthSection(
                             weeklyAverageCompletionRate =
                                 uiState
                                     .weeklyAverageCompletionRate,
+
                             weeklyTotalCompletedCount =
                                 uiState
                                     .weeklyTotalCompletedCount,
+
                             bestDay =
                                 uiState.bestDay
                         )
@@ -264,7 +358,6 @@ private fun RoutineMateHeader() {
             Alignment.CenterVertically
     ) {
 
-        // 새 RoutineMate 브랜드 로고
         BrandLogo()
 
         Spacer(
@@ -283,6 +376,7 @@ private fun RoutineMateHeader() {
                             FontWeight.ExtraBold
                     )
                 ) {
+
                     append("Routine")
                 }
 
@@ -294,6 +388,7 @@ private fun RoutineMateHeader() {
                             FontWeight.Bold
                     )
                 ) {
+
                     append("Mate")
                 }
             },
@@ -317,13 +412,11 @@ private fun BrandLogo() {
             Alignment.Center
     ) {
 
-        // 유기적인 배경 레이어
         Canvas(
             modifier =
                 Modifier.fillMaxSize()
         ) {
 
-            // 가장 연한 배경
             drawCircle(
                 color =
                     Color(0xFFDCE8D5),
@@ -336,7 +429,6 @@ private fun BrandLogo() {
                     )
             )
 
-            // 뒤쪽 산
             val backHill =
                 Path().apply {
 
@@ -383,7 +475,6 @@ private fun BrandLogo() {
                     Color(0xFFA9BFA2)
             )
 
-            // 앞쪽 산
             val frontHill =
                 Path().apply {
 
@@ -430,7 +521,6 @@ private fun BrandLogo() {
                     Color(0xFF718E70)
             )
 
-            // 새싹 줄기
             drawLine(
                 color =
                     Color(0xFF477044),
@@ -448,7 +538,6 @@ private fun BrandLogo() {
                     3f
             )
 
-            // 왼쪽 잎
             rotate(
                 degrees = -30f,
                 pivot =
@@ -474,7 +563,6 @@ private fun BrandLogo() {
                 )
             }
 
-            // 오른쪽 잎
             rotate(
                 degrees = 30f,
                 pivot =
@@ -530,7 +618,8 @@ private fun WelcomeSection() {
         ) {
 
             Text(
-                text = "좋은 하루예요! 🌱",
+                text =
+                    "좋은 하루예요! 🌱",
                 style =
                     MaterialTheme.typography
                         .headlineMedium,
@@ -561,7 +650,6 @@ private fun WelcomeSection() {
                 Modifier.width(10.dp)
         )
 
-        // 자연스러운 산 + 해 일러스트
         NatureIllustration(
             modifier = Modifier
                 .width(155.dp)
@@ -576,13 +664,10 @@ private fun NatureIllustration(
 ) {
 
     Canvas(
-        modifier = modifier
+        modifier =
+            modifier
     ) {
 
-        /*
-         * 해를 산보다 먼저 그려서
-         * 실제로 산 뒤에 있는 것처럼 보이게 한다.
-         */
         drawCircle(
             color =
                 Color(0xFFF4B576),
@@ -595,7 +680,6 @@ private fun NatureIllustration(
                 )
         )
 
-        // 가장 뒤 산
         val farMountain =
             Path().apply {
 
@@ -651,7 +735,6 @@ private fun NatureIllustration(
                 Color(0xFFD8E3D3)
         )
 
-        // 가운데 산
         val middleMountain =
             Path().apply {
 
@@ -707,7 +790,6 @@ private fun NatureIllustration(
                 Color(0xFFB8CAB1)
         )
 
-        // 앞쪽 산
         val frontMountain =
             Path().apply {
 
@@ -754,7 +836,6 @@ private fun NatureIllustration(
                 Color(0xFF91AA8C)
         )
 
-        // 오른쪽 식물 줄기
         drawLine(
             color =
                 Color(0xFF4E704E),
@@ -772,7 +853,6 @@ private fun NatureIllustration(
                 3f
         )
 
-        // 잎 1
         rotate(
             degrees = -35f,
             pivot =
@@ -798,7 +878,6 @@ private fun NatureIllustration(
             )
         }
 
-        // 잎 2
         rotate(
             degrees = 35f,
             pivot =
@@ -893,7 +972,8 @@ private fun TodayProgressCard(
                 )
 
                 Text(
-                    text = "오늘의 진행",
+                    text =
+                        "오늘의 진행",
                     style =
                         MaterialTheme.typography
                             .titleLarge,
@@ -1218,6 +1298,7 @@ private fun ChallengeLazyRow(
                 challenge =
                     challenge,
                 onClick = {
+
                     onChallengeClick(
                         challenge.id
                     )
@@ -1375,9 +1456,10 @@ private fun EmptyChallengeCard(
 ) {
 
     Box(
-        modifier = Modifier.padding(
-            horizontal = 20.dp
-        )
+        modifier =
+            Modifier.padding(
+                horizontal = 20.dp
+            )
     ) {
 
         Card(
@@ -1429,9 +1511,10 @@ private fun WeeklyGrowthSection(
 ) {
 
     Column(
-        modifier = Modifier.padding(
-            horizontal = 20.dp
-        )
+        modifier =
+            Modifier.padding(
+                horizontal = 20.dp
+            )
     ) {
 
         Text(
@@ -1492,9 +1575,11 @@ private fun WeeklyGrowthSection(
                         "Best Day",
                     value =
                         bestDay?.let {
+
                             formatChallengeDate(
                                 it
                             )
+
                         } ?: "-",
                     modifier =
                         Modifier.weight(1f)
@@ -1529,8 +1614,11 @@ private fun GrowthItem(
                 FontWeight.Bold,
             color =
                 if (highlight) {
+
                     RoutineAccentOrange
+
                 } else {
+
                     Color(0xFF344038)
                 }
         )
@@ -1567,7 +1655,10 @@ private fun HomeLoadingCard() {
                 Alignment.CenterHorizontally
         ) {
 
-            CircularProgressIndicator()
+            CircularProgressIndicator(
+                color =
+                    Color(0xFF789174)
+            )
 
             Spacer(
                 modifier =
@@ -1576,51 +1667,162 @@ private fun HomeLoadingCard() {
 
             Text(
                 text =
-                    "오늘의 루틴을 불러오고 있어요."
+                    "오늘의 루틴을 불러오고 있어요.",
+                color =
+                    Color(0xFF6F7972)
             )
         }
     }
 }
 
+// 각 영역별 오류 카드
 @Composable
-private fun HomeErrorCard(
-    message: String
+private fun SectionErrorCard(
+    title: String,
+    message: String,
+    onRetry: () -> Unit
 ) {
 
     Card(
         modifier =
             Modifier.fillMaxWidth(),
         shape =
-            RoundedCornerShape(26.dp),
+            RoundedCornerShape(22.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    MaterialTheme.colorScheme
-                        .errorContainer
+                    Color(0xFFFFF3EC)
             )
     ) {
 
         Column(
             modifier =
-                Modifier.padding(20.dp)
+                Modifier.padding(18.dp)
         ) {
 
             Text(
                 text =
-                    "홈 정보를 불러오지 못했어요.",
+                    title,
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
                 fontWeight =
-                    FontWeight.Bold
+                    FontWeight.Bold,
+                color =
+                    Color(0xFF704C3B)
             )
 
             Spacer(
                 modifier =
-                    Modifier.height(6.dp)
+                    Modifier.height(5.dp)
             )
 
             Text(
                 text =
-                    message
+                    message,
+                style =
+                    MaterialTheme.typography
+                        .bodyMedium,
+                color =
+                    Color(0xFF8B7467)
             )
+
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+
+            Button(
+                onClick =
+                    onRetry,
+                shape =
+                    RoundedCornerShape(50.dp),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            Color(0xFF789174)
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "다시 시도"
+                )
+            }
+        }
+    }
+}
+
+// 완료/취소 같은 사용자 액션 오류
+@Composable
+private fun ActionErrorCard(
+    message: String,
+    onDismiss: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 20.dp
+            ),
+        shape =
+            RoundedCornerShape(18.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color(0xFFFFEEE6)
+            )
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 12.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = "!",
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(0xFFC66D43)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(10.dp)
+            )
+
+            Text(
+                text =
+                    message,
+                modifier =
+                    Modifier.weight(1f),
+                style =
+                    MaterialTheme.typography
+                        .bodyMedium,
+                color =
+                    Color(0xFF775E52)
+            )
+
+            TextButton(
+                onClick =
+                    onDismiss
+            ) {
+
+                Text(
+                    text =
+                        "확인",
+                    color =
+                        Color(0xFF617963)
+                )
+            }
         }
     }
 }

@@ -25,7 +25,7 @@ import com.example.routinemate.data.remote.api.ProfileApi
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://192.168.45.93:8080/"
+    private const val BASE_URL = "http://192.168.45.34:8080/"
 
     @Provides
     @Singleton

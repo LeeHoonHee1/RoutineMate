@@ -210,6 +210,11 @@ fun FriendScreen(
                         nickname =
                             request.requesterNickname,
 
+                        // 현재 이 요청을 처리 중인지
+                        isProcessing =
+                            uiState.processingRequestId ==
+                                    request.id,
+
                         onAccept = {
 
                             viewModel
@@ -285,6 +290,9 @@ fun FriendScreen(
                     keyword =
                         uiState.searchKeyword,
 
+                    isSearching =
+                        uiState.isSearching,
+
                     onKeywordChange =
                         viewModel::onSearchKeywordChange,
 
@@ -322,8 +330,14 @@ fun FriendScreen(
                     SearchResultCard(
                         nickname =
                             user.nickname,
+
                         email =
                             user.email,
+
+                        // 이 사용자에게 요청 전송 중인지
+                        isRequesting =
+                            uiState.sendingRequestUserId ==
+                                    user.id,
 
                         onRequest = {
 
@@ -897,6 +911,7 @@ private fun FriendSectionTitle(
 @Composable
 private fun FriendRequestCard(
     nickname: String,
+    isProcessing: Boolean,
     onAccept: () -> Unit,
     onReject: () -> Unit
 ) {
@@ -996,14 +1011,21 @@ private fun FriendRequestCard(
                 Button(
                     onClick =
                         onAccept,
+
+                    // 요청 처리 중에는 다시 못 누름
+                    enabled =
+                        !isProcessing,
+
                     modifier =
                         Modifier.width(
                             82.dp
                         ),
+
                     shape =
                         RoundedCornerShape(
                             50.dp
                         ),
+
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor =
@@ -1014,17 +1036,29 @@ private fun FriendRequestCard(
                 ) {
 
                     Text(
-                        "수락"
+                        text =
+                            if (isProcessing) {
+                                "처리 중"
+                            } else {
+                                "수락"
+                            }
                     )
                 }
 
                 OutlinedButton(
                     onClick =
                         onReject,
+
+                    // 수락/거절 중 하나가 실행 중이면
+                    // 둘 다 잠근다.
+                    enabled =
+                        !isProcessing,
+
                     modifier =
                         Modifier.width(
                             82.dp
                         ),
+
                     shape =
                         RoundedCornerShape(
                             50.dp
@@ -1264,6 +1298,7 @@ private fun FriendAvatar(
 @Composable
 private fun FriendSearchSection(
     keyword: String,
+    isSearching: Boolean,
     onKeywordChange:
         (String) -> Unit,
     onSearch: () -> Unit
@@ -1380,14 +1415,21 @@ private fun FriendSearchSection(
             Button(
                 onClick =
                     onSearch,
+
+                // 검색 중에는 다시 검색하지 못하게 함
+                enabled =
+                    !isSearching,
+
                 modifier =
                     Modifier.height(
                         56.dp
                     ),
+
                 shape =
                     RoundedCornerShape(
                         18.dp
                     ),
+
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor =
@@ -1399,7 +1441,11 @@ private fun FriendSearchSection(
 
                 Text(
                     text =
-                        "검색",
+                        if (isSearching) {
+                            "검색 중..."
+                        } else {
+                            "검색"
+                        },
                     fontWeight =
                         FontWeight.Bold
                 )
@@ -1412,6 +1458,7 @@ private fun FriendSearchSection(
 private fun SearchResultCard(
     nickname: String,
     email: String,
+    isRequesting: Boolean,
     onRequest: () -> Unit
 ) {
 
@@ -1498,10 +1545,16 @@ private fun SearchResultCard(
             Button(
                 onClick =
                     onRequest,
+
+                // 이 사용자에게 요청 전송 중이면 잠금
+                enabled =
+                    !isRequesting,
+
                 shape =
                     RoundedCornerShape(
                         50.dp
                     ),
+
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor =
@@ -1513,7 +1566,11 @@ private fun SearchResultCard(
 
                 Text(
                     text =
-                        "친구 요청"
+                        if (isRequesting) {
+                            "요청 중..."
+                        } else {
+                            "친구 요청"
+                        }
                 )
             }
         }

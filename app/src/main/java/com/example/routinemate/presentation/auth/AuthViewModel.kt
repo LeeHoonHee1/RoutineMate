@@ -29,30 +29,59 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     // 이메일 입력값 변경
-    fun onEmailChange(email: String) {
-        _uiState.value = _uiState.value.copy(
-            email = email
-        )
+    fun onEmailChange(
+        email: String
+    ) {
+
+        _uiState.value =
+            _uiState.value.copy(
+                email = email,
+
+                // 다시 입력하면 이전 오류 제거
+                errorMessage = null
+            )
     }
 
     // 비밀번호 입력값 변경
-    fun onPasswordChange(password: String) {
-        _uiState.value = _uiState.value.copy(
-            password = password
-        )
+    fun onPasswordChange(
+        password: String
+    ) {
+
+        _uiState.value =
+            _uiState.value.copy(
+                password = password,
+
+                // 다시 입력하면 이전 오류 제거
+                errorMessage = null
+            )
     }
 
     // 닉네임 입력값 변경
-    fun onNicknameChange(nickname: String) {
-        _uiState.value = _uiState.value.copy(
-            nickname = nickname
-        )
+    fun onNicknameChange(
+        nickname: String
+    ) {
+
+        _uiState.value =
+            _uiState.value.copy(
+                nickname = nickname,
+
+                // 다시 입력하면 이전 오류 제거
+                errorMessage = null
+            )
     }
 
     // 서버에 로그인 요청
     fun login() {
 
+        // 이미 로그인 요청 중이면 중복 실행 방지
+        if (
+            _uiState.value.isLoading
+        ) {
+            return
+        }
+
         val email = _uiState.value.email.trim()
+
         val password = _uiState.value.password
 
         // 로그인 입력값 검증
@@ -120,8 +149,17 @@ class AuthViewModel @Inject constructor(
     // 서버에 회원가입 요청
     fun signup() {
 
+        // 회원가입 버튼 연타 방지
+        if (
+            _uiState.value.isLoading
+        ) {
+            return
+        }
+
         val email = _uiState.value.email.trim()
+
         val password = _uiState.value.password
+
         val nickname = _uiState.value.nickname.trim()
 
         // 회원가입 입력값 검증

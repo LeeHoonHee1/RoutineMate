@@ -36,9 +36,18 @@ data class HomeUiState(
     // 가장 잘한 날
     val bestDay: String? = null,
 
-    // 데이터 로딩 여부
+    // 홈 전체 초기 로딩
     val isLoading: Boolean = false,
 
-    // 오류 메시지
-    val errorMessage: String? = null
+    // 습관 영역 오류
+    val habitErrorMessage: String? = null,
+
+    // 통계 영역 오류
+    val statisticsErrorMessage: String? = null,
+
+    // 챌린지 영역 오류
+    val challengeErrorMessage: String? = null,
+
+    // 습관 완료/취소 같은 액션 오류
+    val actionErrorMessage: String? = null
 )

@@ -17,8 +17,17 @@ data class FriendUiState(
     // 검색어
     val searchKeyword: String = "",
 
-    // 화면 로딩 상태
+    // 화면 전체 로딩
     val isLoading: Boolean = false,
+
+    // 검색 중 여부
+    val isSearching: Boolean = false,
+
+    // 친구 요청 보내는 중인 사용자 ID
+    val sendingRequestUserId: Long? = null,
+
+    // 수락/거절 처리 중인 친구 요청 ID
+    val processingRequestId: Long? = null,
 
     // 성공 메시지
     val successMessage: String? = null,

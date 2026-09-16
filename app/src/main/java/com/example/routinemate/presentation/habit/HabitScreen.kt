@@ -77,6 +77,23 @@ fun HabitScreen(
         viewModel.loadHabits()
     }
 
+    // 생성 / 수정 성공했을 때만 다이얼로그 닫기
+    LaunchedEffect(
+        uiState.isSaveSuccess
+    ) {
+
+        if (
+            uiState.isSaveSuccess
+        ) {
+
+            showHabitDialog = false
+
+            selectedCategory = null
+
+            viewModel.consumeSaveSuccess()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -414,15 +431,24 @@ fun HabitScreen(
             description =
                 uiState.description,
 
-            isLoading =
-                uiState.isLoading,
+            isSubmitting =
+                uiState.isSubmitting,
+
+            inputErrorMessage =
+                uiState.inputErrorMessage,
+
+            operationErrorMessage =
+                uiState.errorMessage,
 
             onCategorySelected = { category ->
 
-                selectedCategory = category
+                selectedCategory =
+                    category
 
                 // 새 습관일 때 카테고리 기본 이름 입력
-                if (uiState.editingHabitId == null) {
+                if (
+                    uiState.editingHabitId == null
+                ) {
 
                     viewModel.onTitleChange(
                         category.defaultTitle
@@ -438,15 +464,28 @@ fun HabitScreen(
 
             onDismiss = {
 
-                showHabitDialog = false
+                if (
+                    !uiState.isSubmitting
+                ) {
 
-                selectedCategory = null
+                    showHabitDialog =
+                        false
 
-                viewModel.cancelEditing()
+                    selectedCategory =
+                        null
+
+                    viewModel.cancelEditing()
+                }
             },
 
             onConfirm = {
 
+                /*
+                 * 여기서 다이얼로그를 닫지 않는다.
+                 *
+                 * 검증 성공 + 서버 저장 성공 후
+                 * isSaveSuccess가 true가 되면 닫힌다.
+                 */
                 if (
                     uiState.editingHabitId == null
                 ) {
@@ -457,10 +496,6 @@ fun HabitScreen(
 
                     viewModel.updateHabit()
                 }
-
-                showHabitDialog = false
-
-                selectedCategory = null
             }
         )
     }
@@ -1781,7 +1816,9 @@ private fun HabitEditorDialog(
     selectedCategory: HabitCategory?,
     title: String,
     description: String,
-    isLoading: Boolean,
+    isSubmitting: Boolean,
+    inputErrorMessage: String?,
+    operationErrorMessage: String?,
     onCategorySelected: (HabitCategory) -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
@@ -1789,13 +1826,34 @@ private fun HabitEditorDialog(
     onConfirm: () -> Unit
 ) {
 
+    val titleError =
+        inputErrorMessage
+            ?.contains(
+                "습관 이름"
+            ) == true
+
+    val descriptionError =
+        inputErrorMessage
+            ?.contains(
+                "습관 설명"
+            ) == true
+
     AlertDialog(
         onDismissRequest = {
-            onDismiss()
+
+            // 서버 요청 중에는 바깥 터치로 닫히지 않게 함
+            if (
+                !isSubmitting
+            ) {
+
+                onDismiss()
+            }
         },
 
         shape =
-            RoundedCornerShape(28.dp),
+            RoundedCornerShape(
+                28.dp
+            ),
 
         containerColor =
             Color(0xFFFAF9F5),
@@ -1806,7 +1864,9 @@ private fun HabitEditorDialog(
 
                 Text(
                     text =
-                        if (isEditing) {
+                        if (
+                            isEditing
+                        ) {
                             "습관 수정하기"
                         } else {
                             "새 습관 만들기"
@@ -1817,17 +1877,23 @@ private fun HabitEditorDialog(
                     fontWeight =
                         FontWeight.Bold,
                     color =
-                        Color(0xFF16392F)
+                        Color(
+                            0xFF16392F
+                        )
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.height(6.dp)
+                        Modifier.height(
+                            6.dp
+                        )
                 )
 
                 Text(
                     text =
-                        if (isEditing) {
+                        if (
+                            isEditing
+                        ) {
                             "내 습관을 조금 더 나에게 맞게 바꿔보세요."
                         } else {
                             "작은 습관 하나부터 시작해볼까요?"
@@ -1836,7 +1902,9 @@ private fun HabitEditorDialog(
                         MaterialTheme.typography
                             .bodyMedium,
                     color =
-                        Color(0xFF7A847E)
+                        Color(
+                            0xFF7A847E
+                        )
                 )
             }
         },
@@ -1847,19 +1915,24 @@ private fun HabitEditorDialog(
 
                 // 카테고리
                 Text(
-                    text = "어떤 습관인가요?",
+                    text =
+                        "어떤 습관인가요?",
                     style =
                         MaterialTheme.typography
                             .titleMedium,
                     fontWeight =
                         FontWeight.Bold,
                     color =
-                        Color(0xFF2A3B33)
+                        Color(
+                            0xFF2A3B33
+                        )
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.height(12.dp)
+                        Modifier.height(
+                            12.dp
+                        )
                 )
 
                 HabitCategorySelector(
@@ -1871,76 +1944,267 @@ private fun HabitEditorDialog(
 
                 Spacer(
                     modifier =
-                        Modifier.height(22.dp)
+                        Modifier.height(
+                            22.dp
+                        )
                 )
 
                 // 습관 이름
-                Text(
-                    text = "습관 이름",
-                    style =
-                        MaterialTheme.typography
-                            .labelLarge,
-                    color =
-                        Color(0xFF526159)
-                )
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text =
+                            "습관 이름",
+                        style =
+                            MaterialTheme.typography
+                                .labelLarge,
+                        color =
+                            Color(
+                                0xFF526159
+                            )
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "${title.length} / 50",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            Color(
+                                0xFF8A918C
+                            )
+                    )
+                }
 
                 Spacer(
                     modifier =
-                        Modifier.height(7.dp)
+                        Modifier.height(
+                            7.dp
+                        )
                 )
 
                 OutlinedTextField(
-                    value = title,
+                    value =
+                        title,
+
                     onValueChange =
                         onTitleChange,
+
                     modifier =
                         Modifier.fillMaxWidth(),
+
                     placeholder = {
+
                         Text(
                             "습관 이름을 입력해주세요."
                         )
                     },
-                    singleLine = true,
+
+                    singleLine =
+                        true,
+
+                    isError =
+                        titleError,
+
+                    enabled =
+                        !isSubmitting,
+
                     shape =
-                        RoundedCornerShape(16.dp)
+                        RoundedCornerShape(
+                            16.dp
+                        )
                 )
+
+                if (
+                    titleError
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                5.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            inputErrorMessage
+                                ?: "",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .error
+                    )
+                }
 
                 Spacer(
                     modifier =
-                        Modifier.height(18.dp)
+                        Modifier.height(
+                            18.dp
+                        )
                 )
 
                 // 설명
-                Text(
-                    text = "설명",
-                    style =
-                        MaterialTheme.typography
-                            .labelLarge,
-                    color =
-                        Color(0xFF526159)
-                )
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text =
+                            "설명",
+                        style =
+                            MaterialTheme.typography
+                                .labelLarge,
+                        color =
+                            Color(
+                                0xFF526159
+                            )
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "${description.length} / 200",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            Color(
+                                0xFF8A918C
+                            )
+                    )
+                }
 
                 Spacer(
                     modifier =
-                        Modifier.height(7.dp)
+                        Modifier.height(
+                            7.dp
+                        )
                 )
 
                 OutlinedTextField(
-                    value = description,
+                    value =
+                        description,
+
                     onValueChange =
                         onDescriptionChange,
+
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(110.dp),
+                        .height(
+                            110.dp
+                        ),
+
                     placeholder = {
 
                         Text(
                             "이 습관에 대한 짧은 설명을 적어보세요."
                         )
                     },
+
+                    isError =
+                        descriptionError,
+
+                    enabled =
+                        !isSubmitting,
+
                     shape =
-                        RoundedCornerShape(16.dp)
+                        RoundedCornerShape(
+                            16.dp
+                        )
                 )
+
+                if (
+                    descriptionError
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                5.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            inputErrorMessage
+                                ?: "",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .error
+                    )
+                }
+
+                // 서버 저장 오류
+                if (
+                    !operationErrorMessage
+                        .isNullOrBlank()
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                12.dp
+                            )
+                    )
+
+                    Surface(
+                        shape =
+                            RoundedCornerShape(
+                                12.dp
+                            ),
+                        color =
+                            Color(
+                                0xFFFFEEE7
+                            )
+                    ) {
+
+                        Text(
+                            text =
+                                operationErrorMessage,
+                            modifier =
+                                Modifier.padding(
+                                    10.dp
+                                ),
+                            style =
+                                MaterialTheme.typography
+                                    .bodySmall,
+                            color =
+                                Color(
+                                    0xFFB55F3E
+                                )
+                        )
+                    }
+                }
             }
         },
 
@@ -1951,32 +2215,68 @@ private fun HabitEditorDialog(
                     onConfirm()
                 },
 
+                // 저장 중일 때만 버튼 막기
                 enabled =
-                    !isLoading &&
-                            title.isNotBlank(),
+                    !isSubmitting,
 
                 shape =
-                    RoundedCornerShape(50.dp),
+                    RoundedCornerShape(
+                        50.dp
+                    ),
 
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor =
-                            Color(0xFF718D71),
+                            Color(
+                                0xFF718D71
+                            ),
                         contentColor =
                             Color.White
                     )
             ) {
 
-                Text(
-                    text =
-                        if (isEditing) {
-                            "수정 완료"
-                        } else {
-                            "습관 추가"
-                        },
-                    fontWeight =
-                        FontWeight.Bold
-                )
+                if (
+                    isSubmitting
+                ) {
+
+                    CircularProgressIndicator(
+                        modifier =
+                            Modifier.size(
+                                18.dp
+                            ),
+                        strokeWidth =
+                            2.dp,
+                        color =
+                            Color.White
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                8.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "저장 중..."
+                    )
+
+                } else {
+
+                    Text(
+                        text =
+                            if (
+                                isEditing
+                            ) {
+                                "수정 완료"
+                            } else {
+                                "습관 추가"
+                            },
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+                }
             }
         },
 
@@ -1985,13 +2285,18 @@ private fun HabitEditorDialog(
             TextButton(
                 onClick = {
                     onDismiss()
-                }
+                },
+                enabled =
+                    !isSubmitting
             ) {
 
                 Text(
-                    text = "취소",
+                    text =
+                        "취소",
                     color =
-                        Color(0xFF68746D)
+                        Color(
+                            0xFF68746D
+                        )
                 )
             }
         }

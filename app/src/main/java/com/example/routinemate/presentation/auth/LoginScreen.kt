@@ -103,11 +103,18 @@ fun LoginScreen(
                 // 이메일
                 OutlinedTextField(
                     value = uiState.email,
-                    onValueChange = viewModel::onEmailChange,
+                    onValueChange =
+                        viewModel::onEmailChange,
                     label = {
                         Text("이메일")
                     },
-                    modifier = Modifier.fillMaxWidth(),
+
+                    // 로그인 요청 중에는 수정 불가
+                    enabled =
+                        !uiState.isLoading,
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
@@ -120,13 +127,20 @@ fun LoginScreen(
                 // 비밀번호
                 OutlinedTextField(
                     value = uiState.password,
-                    onValueChange = viewModel::onPasswordChange,
+                    onValueChange =
+                        viewModel::onPasswordChange,
                     label = {
                         Text("비밀번호")
                     },
+
+                    enabled =
+                        !uiState.isLoading,
+
                     visualTransformation =
                         PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
@@ -185,6 +199,9 @@ fun LoginScreen(
         // 회원가입 이동
         TextButton(
             onClick = onRegisterClick,
+
+            enabled = !uiState.isLoading,
+
             modifier = Modifier.align(
                 Alignment.CenterHorizontally
             )

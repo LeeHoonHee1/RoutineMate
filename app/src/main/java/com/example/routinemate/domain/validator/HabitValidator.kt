@@ -14,15 +14,22 @@ class HabitValidator @Inject constructor() {
             return "습관 이름을 입력해주세요."
         }
 
-        if (title.length > 50) {
-            return "습관 이름은 50자 이하로 입력해주세요."
+        if (title.length > TITLE_MAX_LENGTH) {
+            return "습관 이름은 ${TITLE_MAX_LENGTH}자 이하로 입력해주세요."
         }
 
-        if (description.length > 200) {
-            return "습관 설명은 200자 이하로 입력해주세요."
+        if (description.length > DESCRIPTION_MAX_LENGTH) {
+            return "습관 설명은 ${DESCRIPTION_MAX_LENGTH}자 이하로 입력해주세요."
         }
 
         // 문제가 없으면 null
         return null
+    }
+
+    companion object {
+
+        const val TITLE_MAX_LENGTH = 50
+
+        const val DESCRIPTION_MAX_LENGTH = 200
     }
 }

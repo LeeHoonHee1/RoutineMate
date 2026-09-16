@@ -4,12 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.routinemate.domain.repository.FriendRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class FriendViewModel @Inject constructor(
@@ -17,7 +17,9 @@ class FriendViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState =
-        MutableStateFlow(FriendUiState())
+        MutableStateFlow(
+            FriendUiState()
+        )
 
     val uiState: StateFlow<FriendUiState> =
         _uiState.asStateFlow()
@@ -83,14 +85,26 @@ class FriendViewModel @Inject constructor(
     // 사용자 검색
     fun searchUsers() {
 
-        val keyword =
-            _uiState.value.searchKeyword.trim()
+        // 검색 중이면 중복 요청 방지
+        if (
+            _uiState.value.isSearching
+        ) {
+            return
+        }
 
-        if (keyword.isBlank()) {
+        val keyword =
+            _uiState.value
+                .searchKeyword
+                .trim()
+
+        if (
+            keyword.isBlank()
+        ) {
 
             _uiState.update {
                 it.copy(
-                    searchResults = emptyList()
+                    searchResults =
+                        emptyList()
                 )
             }
 
@@ -101,7 +115,7 @@ class FriendViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    isLoading = true,
+                    isSearching = true,
                     errorMessage = null
                 )
             }
@@ -109,14 +123,17 @@ class FriendViewModel @Inject constructor(
             try {
 
                 val results =
-                    friendRepository.searchUsers(
-                        keyword = keyword
-                    )
+                    friendRepository
+                        .searchUsers(
+                            keyword = keyword
+                        )
 
                 _uiState.update {
                     it.copy(
-                        searchResults = results,
-                        isLoading = false
+                        searchResults =
+                            results,
+                        isSearching =
+                            false
                     )
                 }
 
@@ -124,7 +141,8 @@ class FriendViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
+                        isSearching =
+                            false,
                         errorMessage =
                             "사용자 검색에 실패했습니다."
                     )
@@ -138,20 +156,46 @@ class FriendViewModel @Inject constructor(
         receiverId: Long
     ) {
 
+        // 이미 같은 사용자에게 요청 중이면 막기
+        if (
+            _uiState.value
+                .sendingRequestUserId ==
+            receiverId
+        ) {
+            return
+        }
+
         viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    sendingRequestUserId =
+                        receiverId,
+                    errorMessage = null
+                )
+            }
 
             try {
 
-                friendRepository.sendFriendRequest(
-                    receiverId = receiverId
-                )
+                friendRepository
+                    .sendFriendRequest(
+                        receiverId =
+                            receiverId
+                    )
 
                 _uiState.update { state ->
+
                     state.copy(
                         searchResults =
-                            state.searchResults.filter {
-                                it.id != receiverId
-                            },
+                            state.searchResults
+                                .filter {
+                                    it.id !=
+                                            receiverId
+                                },
+
+                        sendingRequestUserId =
+                            null,
+
                         successMessage =
                             "친구 요청을 보냈습니다."
                     )
@@ -161,6 +205,8 @@ class FriendViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        sendingRequestUserId =
+                            null,
                         errorMessage =
                             "친구 요청을 보내지 못했습니다."
                     )
@@ -174,21 +220,47 @@ class FriendViewModel @Inject constructor(
         requestId: Long
     ) {
 
+        // 같은 요청 처리 중이면 중복 클릭 방지
+        if (
+            _uiState.value
+                .processingRequestId ==
+            requestId
+        ) {
+            return
+        }
+
         viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    processingRequestId =
+                        requestId,
+                    errorMessage = null
+                )
+            }
 
             try {
 
-                friendRepository.acceptFriendRequest(
-                    requestId = requestId
-                )
+                friendRepository
+                    .acceptFriendRequest(
+                        requestId =
+                            requestId
+                    )
 
                 // 처리된 요청 먼저 제거
                 _uiState.update { state ->
+
                     state.copy(
                         receivedRequests =
-                            state.receivedRequests.filter {
-                                it.id != requestId
-                            },
+                            state.receivedRequests
+                                .filter {
+                                    it.id !=
+                                            requestId
+                                },
+
+                        processingRequestId =
+                            null,
+
                         successMessage =
                             "친구 요청을 수락했습니다."
                     )
@@ -201,6 +273,8 @@ class FriendViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        processingRequestId =
+                            null,
                         errorMessage =
                             "친구 요청을 수락하지 못했습니다."
                     )
@@ -214,20 +288,46 @@ class FriendViewModel @Inject constructor(
         requestId: Long
     ) {
 
+        // 같은 요청 처리 중이면 중복 클릭 방지
+        if (
+            _uiState.value
+                .processingRequestId ==
+            requestId
+        ) {
+            return
+        }
+
         viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    processingRequestId =
+                        requestId,
+                    errorMessage = null
+                )
+            }
 
             try {
 
-                friendRepository.rejectFriendRequest(
-                    requestId = requestId
-                )
+                friendRepository
+                    .rejectFriendRequest(
+                        requestId =
+                            requestId
+                    )
 
                 _uiState.update { state ->
+
                     state.copy(
                         receivedRequests =
-                            state.receivedRequests.filter {
-                                it.id != requestId
-                            },
+                            state.receivedRequests
+                                .filter {
+                                    it.id !=
+                                            requestId
+                                },
+
+                        processingRequestId =
+                            null,
+
                         successMessage =
                             "친구 요청을 거절했습니다."
                     )
@@ -237,6 +337,8 @@ class FriendViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        processingRequestId =
+                            null,
                         errorMessage =
                             "친구 요청을 거절하지 못했습니다."
                     )

@@ -223,15 +223,20 @@ fun ChallengeScreen(
                     InvitationCard(
                         title =
                             invitation.title,
+
                         ownerNickname =
                             invitation.ownerNickname,
+
+                        // 현재 이 초대를 처리 중인지
+                        isProcessing =
+                            uiState.processingInvitationId ==
+                                    invitation.memberId,
 
                         onAccept = {
 
                             viewModel
                                 .acceptInvitation(
-                                    invitation
-                                        .memberId
+                                    invitation.memberId
                                 )
                         },
 
@@ -239,8 +244,7 @@ fun ChallengeScreen(
 
                             viewModel
                                 .rejectInvitation(
-                                    invitation
-                                        .memberId
+                                    invitation.memberId
                                 )
                         }
                     )
@@ -302,10 +306,13 @@ fun ChallengeScreen(
 
                         friendNames =
                             uiState.friends
-                                .map {
-                                        friend ->
+                                .map { friend ->
                                     friend.nickname
                                 },
+
+                        // 추가
+                        invitingFriendId =
+                            uiState.invitingFriendId,
 
                         onChallengeClick = {
 
@@ -314,8 +321,7 @@ fun ChallengeScreen(
                             )
                         },
 
-                        onInviteFriend = {
-                                friendId ->
+                        onInviteFriend = { friendId ->
 
                             viewModel
                                 .inviteFriend(
@@ -328,8 +334,7 @@ fun ChallengeScreen(
 
                         friends =
                             uiState.friends
-                                .map {
-                                        friend ->
+                                .map { friend ->
 
                                     ChallengeFriendUi(
                                         id =
@@ -358,28 +363,27 @@ fun ChallengeScreen(
                     endDate =
                         uiState.endDate,
 
-                    isLoading =
-                        uiState.isLoading,
+                    isSubmitting =
+                        uiState.isSubmitting,
+
+                    inputErrorMessage =
+                        uiState.inputErrorMessage,
 
                     onTitleChange =
                         viewModel::onTitleChange,
 
                     onDescriptionChange =
-                        viewModel::
-                        onDescriptionChange,
+                        viewModel::onDescriptionChange,
 
                     onStartDateChange =
-                        viewModel::
-                        onStartDateChange,
+                        viewModel::onStartDateChange,
 
                     onEndDateChange =
-                        viewModel::
-                        onEndDateChange,
+                        viewModel::onEndDateChange,
 
                     onCreate = {
 
-                        viewModel
-                            .createChallenge()
+                        viewModel.createChallenge()
                     }
                 )
             }
@@ -916,6 +920,7 @@ private fun SectionTitle(
 private fun InvitationCard(
     title: String,
     ownerNickname: String,
+    isProcessing: Boolean,
     onAccept: () -> Unit,
     onReject: () -> Unit
 ) {
@@ -1049,14 +1054,18 @@ private fun InvitationCard(
                     OutlinedButton(
                         onClick =
                             onReject,
+
+                        // 처리 중이면 비활성화
+                        enabled =
+                            !isProcessing,
+
                         shape =
                             RoundedCornerShape(
                                 50.dp
                             ),
+
                         modifier =
-                            Modifier.weight(
-                                1f
-                            )
+                            Modifier.weight(1f)
                     ) {
 
                         Text(
@@ -1067,26 +1076,33 @@ private fun InvitationCard(
                     Button(
                         onClick =
                             onAccept,
+
+                        // 처리 중이면 비활성화
+                        enabled =
+                            !isProcessing,
+
                         shape =
                             RoundedCornerShape(
                                 50.dp
                             ),
+
                         modifier =
-                            Modifier.weight(
-                                1f
-                            ),
+                            Modifier.weight(1f),
+
                         colors =
-                            ButtonDefaults
-                                .buttonColors(
-                                    containerColor =
-                                        Color(
-                                            0xFF658868
-                                        )
-                                )
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Color(0xFF658868)
+                            )
                     ) {
 
                         Text(
-                            "참여하기"
+                            text =
+                                if (isProcessing) {
+                                    "처리 중..."
+                                } else {
+                                    "참여하기"
+                                }
                         )
                     }
                 }
@@ -1108,6 +1124,7 @@ private fun MyChallengeCard(
     endDate: String,
     friendNames: List<String>,
     friends: List<ChallengeFriendUi>,
+    invitingFriendId: Long?,
     onChallengeClick: () -> Unit,
     onInviteFriend: (Long) -> Unit
 ) {
@@ -1430,6 +1447,12 @@ private fun MyChallengeCard(
                                     friend.id
                                 )
                             },
+
+                            // 이 친구에게 초대 보내는 중이면 잠금
+                            enabled =
+                                invitingFriendId !=
+                                        friend.id,
+
                             shape =
                                 RoundedCornerShape(
                                     50.dp
@@ -1437,7 +1460,15 @@ private fun MyChallengeCard(
                         ) {
 
                             Text(
-                                "초대"
+                                text =
+                                    if (
+                                        invitingFriendId ==
+                                        friend.id
+                                    ) {
+                                        "초대 중..."
+                                    } else {
+                                        "초대"
+                                    }
                             )
                         }
                     }
@@ -1460,7 +1491,8 @@ private fun ChallengeCreateSection(
     description: String,
     startDate: String,
     endDate: String,
-    isLoading: Boolean,
+    isSubmitting: Boolean,
+    inputErrorMessage: String?,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onStartDateChange: (String) -> Unit,
@@ -1472,8 +1504,7 @@ private fun ChallengeCreateSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                horizontal =
-                    20.dp
+                horizontal = 20.dp
             )
     ) {
 
@@ -1485,16 +1516,13 @@ private fun ChallengeCreateSection(
             Text(
                 text = "🌱",
                 style =
-                    MaterialTheme
-                        .typography
+                    MaterialTheme.typography
                         .headlineMedium
             )
 
             Spacer(
                 modifier =
-                    Modifier.width(
-                        8.dp
-                    )
+                    Modifier.width(8.dp)
             )
 
             Column {
@@ -1503,8 +1531,7 @@ private fun ChallengeCreateSection(
                     text =
                         "챌린지 만들기",
                     style =
-                        MaterialTheme
-                            .typography
+                        MaterialTheme.typography
                             .titleLarge,
                     fontWeight =
                         FontWeight.Bold,
@@ -1518,8 +1545,7 @@ private fun ChallengeCreateSection(
                     text =
                         "나만의 챌린지를 만들고 친구와 함께 도전해보세요!",
                     style =
-                        MaterialTheme
-                            .typography
+                        MaterialTheme.typography
                             .bodySmall,
                     color =
                         Color(
@@ -1531,9 +1557,7 @@ private fun ChallengeCreateSection(
 
         Spacer(
             modifier =
-                Modifier.height(
-                    14.dp
-                )
+                Modifier.height(14.dp)
         )
 
         Card(
@@ -1544,13 +1568,12 @@ private fun ChallengeCreateSection(
                     24.dp
                 ),
             colors =
-                CardDefaults
-                    .cardColors(
-                        containerColor =
-                            Color(
-                                0xFFF4F7F0
-                            )
-                    )
+                CardDefaults.cardColors(
+                    containerColor =
+                        Color(
+                            0xFFF4F7F0
+                        )
+                )
         ) {
 
             Column(
@@ -1560,55 +1583,146 @@ private fun ChallengeCreateSection(
                     )
             ) {
 
+                // 챌린지 이름
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text =
+                            "챌린지 이름",
+                        style =
+                            MaterialTheme.typography
+                                .labelLarge,
+                        color =
+                            Color(
+                                0xFF526159
+                            )
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.weight(1f)
+                    )
+
+                    Text(
+                        text =
+                            "${title.length} / 50",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            Color(
+                                0xFF8A918C
+                            )
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(6.dp)
+                )
+
                 OutlinedTextField(
                     value =
                         title,
+
                     onValueChange =
                         onTitleChange,
+
                     modifier =
                         Modifier.fillMaxWidth(),
-                    label = {
-                        Text(
-                            "챌린지 이름"
-                        )
-                    },
+
                     placeholder = {
+
                         Text(
                             "예) 하루 10분 명상하기"
                         )
                     },
+
+                    enabled =
+                        !isSubmitting,
+
                     shape =
                         RoundedCornerShape(
                             15.dp
                         ),
+
                     singleLine =
                         true
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.height(
-                            10.dp
-                        )
+                        Modifier.height(14.dp)
+                )
+
+                // 설명
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text =
+                            "설명",
+                        style =
+                            MaterialTheme.typography
+                                .labelLarge,
+                        color =
+                            Color(
+                                0xFF526159
+                            )
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.weight(1f)
+                    )
+
+                    Text(
+                        text =
+                            "${description.length} / 200",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            Color(
+                                0xFF8A918C
+                            )
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(6.dp)
                 )
 
                 OutlinedTextField(
                     value =
                         description,
+
                     onValueChange =
                         onDescriptionChange,
+
                     modifier =
                         Modifier.fillMaxWidth(),
-                    label = {
-                        Text(
-                            "설명"
-                        )
-                    },
+
                     placeholder = {
+
                         Text(
                             "어떤 챌린지인가요?"
                         )
                     },
+
+                    enabled =
+                        !isSubmitting,
+
                     shape =
                         RoundedCornerShape(
                             15.dp
@@ -1617,9 +1731,24 @@ private fun ChallengeCreateSection(
 
                 Spacer(
                     modifier =
-                        Modifier.height(
-                            10.dp
+                        Modifier.height(14.dp)
+                )
+
+                Text(
+                    text =
+                        "기간",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    color =
+                        Color(
+                            0xFF526159
                         )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(6.dp)
                 )
 
                 Row(
@@ -1632,26 +1761,35 @@ private fun ChallengeCreateSection(
                     OutlinedTextField(
                         value =
                             startDate,
+
                         onValueChange =
                             onStartDateChange,
+
                         modifier =
-                            Modifier.weight(
-                                1f
-                            ),
+                            Modifier.weight(1f),
+
                         label = {
+
                             Text(
                                 "시작일"
                             )
                         },
+
                         placeholder = {
+
                             Text(
                                 "2026-09-15"
                             )
                         },
+
+                        enabled =
+                            !isSubmitting,
+
                         shape =
                             RoundedCornerShape(
                                 15.dp
                             ),
+
                         singleLine =
                             true
                     )
@@ -1659,68 +1797,151 @@ private fun ChallengeCreateSection(
                     OutlinedTextField(
                         value =
                             endDate,
+
                         onValueChange =
                             onEndDateChange,
+
                         modifier =
-                            Modifier.weight(
-                                1f
-                            ),
+                            Modifier.weight(1f),
+
                         label = {
+
                             Text(
                                 "종료일"
                             )
                         },
+
                         placeholder = {
+
                             Text(
                                 "2026-09-30"
                             )
                         },
+
+                        enabled =
+                            !isSubmitting,
+
                         shape =
                             RoundedCornerShape(
                                 15.dp
                             ),
+
                         singleLine =
                             true
                     )
                 }
 
+                // 입력 검증 오류
+                if (
+                    !inputErrorMessage
+                        .isNullOrBlank()
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+                    Surface(
+                        shape =
+                            RoundedCornerShape(
+                                12.dp
+                            ),
+                        color =
+                            Color(
+                                0xFFFFEEE7
+                            )
+                    ) {
+
+                        Text(
+                            text =
+                                inputErrorMessage,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        10.dp
+                                    ),
+                            style =
+                                MaterialTheme.typography
+                                    .bodySmall,
+                            color =
+                                Color(
+                                    0xFFB85F3E
+                                )
+                        )
+                    }
+                }
+
                 Spacer(
                     modifier =
-                        Modifier.height(
-                            14.dp
-                        )
+                        Modifier.height(14.dp)
                 )
 
                 Button(
                     onClick =
                         onCreate,
+
+                    // 요청 중에는 다시 누를 수 없음
                     enabled =
-                        !isLoading,
+                        !isSubmitting,
+
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(
                             52.dp
                         ),
+
                     shape =
                         RoundedCornerShape(
                             18.dp
                         ),
+
                     colors =
-                        ButtonDefaults
-                            .buttonColors(
-                                containerColor =
-                                    Color(
-                                        0xFF628468
-                                    )
-                            )
+                        ButtonDefaults.buttonColors(
+                            containerColor =
+                                Color(
+                                    0xFF628468
+                                )
+                        )
                 ) {
 
-                    Text(
-                        text =
-                            "＋  챌린지 만들기",
-                        fontWeight =
-                            FontWeight.Bold
-                    )
+                    if (
+                        isSubmitting
+                    ) {
+
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(
+                                    18.dp
+                                ),
+                            strokeWidth =
+                                2.dp,
+                            color =
+                                Color.White
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    8.dp
+                                )
+                        )
+
+                        Text(
+                            text =
+                                "만드는 중..."
+                        )
+
+                    } else {
+
+                        Text(
+                            text =
+                                "＋  챌린지 만들기",
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

@@ -102,10 +102,14 @@ fun RegisterScreen(
                 // 이메일
                 OutlinedTextField(
                     value = uiState.email,
-                    onValueChange = viewModel::onEmailChange,
+                    onValueChange =
+                        viewModel::onEmailChange,
                     label = {
                         Text("이메일")
                     },
+
+                    enabled = !uiState.isLoading,
+
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -119,12 +123,16 @@ fun RegisterScreen(
                 // 비밀번호
                 OutlinedTextField(
                     value = uiState.password,
-                    onValueChange = viewModel::onPasswordChange,
+                    onValueChange =
+                        viewModel::onPasswordChange,
                     label = {
                         Text("비밀번호")
                     },
-                    visualTransformation =
-                        PasswordVisualTransformation(),
+
+                    enabled = !uiState.isLoading,
+
+                    visualTransformation = PasswordVisualTransformation(),
+
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -138,10 +146,14 @@ fun RegisterScreen(
                 // 닉네임
                 OutlinedTextField(
                     value = uiState.nickname,
-                    onValueChange = viewModel::onNicknameChange,
+                    onValueChange =
+                        viewModel::onNicknameChange,
                     label = {
                         Text("닉네임")
                     },
+
+                    enabled = !uiState.isLoading,
+
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )

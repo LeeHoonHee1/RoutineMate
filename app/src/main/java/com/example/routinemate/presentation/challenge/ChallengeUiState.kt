@@ -21,12 +21,24 @@ data class ChallengeUiState(
     val startDate: String = "",
     val endDate: String = "",
 
-    // 로딩 상태
+    // 화면 데이터 로딩
     val isLoading: Boolean = false,
+
+    // 챌린지 생성 요청 중
+    val isSubmitting: Boolean = false,
+
+    // 현재 초대 요청 중인 친구 ID
+    val invitingFriendId: Long? = null,
+
+    // 현재 수락/거절 처리 중인 초대 ID
+    val processingInvitationId: Long? = null,
+
+    // 입력값 검증 오류
+    val inputErrorMessage: String? = null,
 
     // 성공 메시지
     val successMessage: String? = null,
 
-    // 에러 메시지
+    // 서버 / 네트워크 오류
     val errorMessage: String? = null
 )

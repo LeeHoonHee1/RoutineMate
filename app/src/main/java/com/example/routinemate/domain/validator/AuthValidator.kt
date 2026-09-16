@@ -15,7 +15,11 @@ class AuthValidator @Inject constructor() {
             return "이메일을 입력해주세요."
         }
 
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (
+            !Patterns.EMAIL_ADDRESS
+                .matcher(email)
+                .matches()
+        ) {
             return "올바른 이메일 형식을 입력해주세요."
         }
 
@@ -37,8 +41,17 @@ class AuthValidator @Inject constructor() {
             return "이메일을 입력해주세요."
         }
 
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (
+            !Patterns.EMAIL_ADDRESS
+                .matcher(email)
+                .matches()
+        ) {
             return "올바른 이메일 형식을 입력해주세요."
+        }
+
+        // 비밀번호 공백 검사
+        if (password.isBlank()) {
+            return "비밀번호를 입력해주세요."
         }
 
         if (password.length < 8) {
@@ -47,6 +60,11 @@ class AuthValidator @Inject constructor() {
 
         if (password.length > 64) {
             return "비밀번호는 64자 이하로 입력해주세요."
+        }
+
+        // 닉네임 공백 검사
+        if (nickname.isBlank()) {
+            return "닉네임을 입력해주세요."
         }
 
         if (nickname.length < 2) {

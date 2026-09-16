@@ -89,7 +89,13 @@ class ProfileViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                nicknameInput = nickname
+                // 최대 20자까지만 입력
+                nicknameInput =
+                    nickname.take(20),
+
+                // 다시 입력하면 기존 검증 오류 제거
+                nicknameErrorMessage =
+                    null
             )
         }
     }
@@ -103,8 +109,12 @@ class ProfileViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                nicknameInput = currentNickname,
-                isEditingNickname = true
+                nicknameInput =
+                    currentNickname,
+                isEditingNickname =
+                    true,
+                nicknameErrorMessage =
+                    null
             )
         }
     }
@@ -112,14 +122,25 @@ class ProfileViewModel @Inject constructor(
     // 닉네임 수정 취소
     fun cancelNicknameEdit() {
 
+        // 저장 중에는 취소 방지
+        if (
+            _uiState.value.isSavingNickname
+        ) {
+            return
+        }
+
         val currentNickname =
             _uiState.value.profile?.nickname
                 ?: ""
 
         _uiState.update {
             it.copy(
-                nicknameInput = currentNickname,
-                isEditingNickname = false
+                nicknameInput =
+                    currentNickname,
+                isEditingNickname =
+                    false,
+                nicknameErrorMessage =
+                    null
             )
         }
     }
@@ -127,15 +148,42 @@ class ProfileViewModel @Inject constructor(
     // 닉네임 저장
     fun saveNickname() {
 
-        val nickname =
-            _uiState.value.nicknameInput.trim()
+        // 저장 버튼 연타 방지
+        if (
+            _uiState.value.isSavingNickname
+        ) {
+            return
+        }
 
-        if (nickname.isBlank()) {
+        val nickname =
+            _uiState.value
+                .nicknameInput
+                .trim()
+
+        // 공백 검사
+        if (
+            nickname.isBlank()
+        ) {
 
             _uiState.update {
                 it.copy(
-                    errorMessage =
+                    nicknameErrorMessage =
                         "닉네임을 입력해주세요."
+                )
+            }
+
+            return
+        }
+
+        // 길이 검사
+        if (
+            nickname.length > 20
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    nicknameErrorMessage =
+                        "닉네임은 20자 이하로 입력해주세요."
                 )
             }
 
@@ -146,8 +194,12 @@ class ProfileViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    isLoading = true,
-                    errorMessage = null
+                    isSavingNickname =
+                        true,
+                    nicknameErrorMessage =
+                        null,
+                    errorMessage =
+                        null
                 )
             }
 
@@ -156,16 +208,24 @@ class ProfileViewModel @Inject constructor(
                 val updatedProfile =
                     profileRepository
                         .updateMyProfile(
-                            nickname = nickname
+                            nickname =
+                                nickname
                         )
 
                 _uiState.update {
                     it.copy(
-                        profile = updatedProfile,
+                        profile =
+                            updatedProfile,
+
                         nicknameInput =
                             updatedProfile.nickname,
-                        isEditingNickname = false,
-                        isLoading = false,
+
+                        isEditingNickname =
+                            false,
+
+                        isSavingNickname =
+                            false,
+
                         successMessage =
                             "닉네임을 수정했습니다."
                     )
@@ -175,7 +235,9 @@ class ProfileViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
+                        isSavingNickname =
+                            false,
+
                         errorMessage =
                             "닉네임 수정에 실패했습니다."
                     )
