@@ -50,6 +50,21 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 @Composable
 fun ChallengeScreen(
@@ -59,6 +74,75 @@ fun ChallengeScreen(
 
     val uiState by
     viewModel.uiState.collectAsState()
+
+    val lifecycleOwner =
+        LocalLifecycleOwner.current
+
+    // 상세 화면에서 돌아왔을 때 목록 새로고침
+    DisposableEffect(
+        lifecycleOwner
+    ) {
+
+        val observer =
+            LifecycleEventObserver { _, event ->
+
+                if (
+                    event ==
+                    Lifecycle.Event.ON_RESUME
+                ) {
+
+                    viewModel.loadChallengeData()
+                }
+            }
+
+        lifecycleOwner.lifecycle
+            .addObserver(
+                observer
+            )
+
+        onDispose {
+
+            lifecycleOwner.lifecycle
+                .removeObserver(
+                    observer
+                )
+        }
+    }
+
+    val today =
+        LocalDate.now()
+
+    // 진행 중인 챌린지
+    val activeChallenges =
+        uiState.challenges.filter { challenge ->
+
+            val startDate =
+                LocalDate.parse(
+                    challenge.startDate
+                )
+
+            val endDate =
+                LocalDate.parse(
+                    challenge.endDate
+                )
+
+            !today.isBefore(startDate) &&
+                    !today.isAfter(endDate)
+        }
+
+    // 종료된 챌린지
+    val completedChallenges =
+        uiState.challenges.filter { challenge ->
+
+            val endDate =
+                LocalDate.parse(
+                    challenge.endDate
+                )
+
+            today.isAfter(
+                endDate
+            )
+        }
 
     val snackbarHostState =
         remember {
@@ -146,9 +230,8 @@ fun ChallengeScreen(
 
                     ChallengeGrowthCard(
                         challengeCount =
-                            uiState
-                                .challenges
-                                .size,
+                            activeChallenges.size,
+
                         invitationCount =
                             uiState
                                 .invitations
@@ -256,17 +339,14 @@ fun ChallengeScreen(
 
                 SectionTitle(
                     title =
-                        "내 챌린지",
+                        "진행 중 챌린지",
                     count =
-                        uiState
-                            .challenges
-                            .size
+                        activeChallenges.size
                 )
             }
 
             if (
-                uiState.challenges
-                    .isEmpty()
+                activeChallenges.isEmpty()
             ) {
 
                 item {
@@ -285,7 +365,7 @@ fun ChallengeScreen(
 
                 items(
                     items =
-                        uiState.challenges,
+                        activeChallenges,
                     key = {
                         it.id
                     }
@@ -304,15 +384,29 @@ fun ChallengeScreen(
                         endDate =
                             challenge.endDate,
 
-                        friendNames =
-                            uiState.friends
-                                .map { friend ->
-                                    friend.nickname
-                                },
-
-                        // 추가
                         invitingFriendId =
                             uiState.invitingFriendId,
+
+                        invitedFriendIds =
+                            uiState
+                                .invitedFriendIdsByChallenge[
+                                challenge.id
+                            ] ?: emptySet(),
+
+                        isOwner =
+                            challenge.id in
+                                    uiState.ownerChallengeIds,
+
+                        friendCount =
+                            (
+                                    uiState
+                                        .joinedFriendIdsByChallenge[
+                                        challenge.id
+                                    ]
+                                        ?.size
+                                        ?.minus(1)
+                                        ?: 0
+                                    ).coerceAtLeast(0),
 
                         onChallengeClick = {
 
@@ -323,17 +417,25 @@ fun ChallengeScreen(
 
                         onInviteFriend = { friendId ->
 
-                            viewModel
-                                .inviteFriend(
-                                    challengeId =
-                                        challenge.id,
-                                    friendId =
-                                        friendId
-                                )
+                            viewModel.inviteFriend(
+                                challengeId =
+                                    challenge.id,
+                                friendId =
+                                    friendId
+                            )
                         },
 
                         friends =
                             uiState.friends
+                                .filter { friend ->
+
+                                    friend.id !in (
+                                            uiState
+                                                .joinedFriendIdsByChallenge[
+                                                challenge.id
+                                            ] ?: emptySet()
+                                            )
+                                }
                                 .map { friend ->
 
                                     ChallengeFriendUi(
@@ -343,6 +445,62 @@ fun ChallengeScreen(
                                             friend.nickname
                                     )
                                 }
+                    )
+                }
+            }
+
+            // 완료된 챌린지
+            item {
+
+                SectionTitle(
+                    title =
+                        "완료된 챌린지",
+                    count =
+                        completedChallenges.size
+                )
+            }
+
+            if (
+                completedChallenges.isEmpty()
+            ) {
+
+                item {
+
+                    EmptyChallengeCard(
+                        title =
+                            "완료된 챌린지가 아직 없어요.",
+                        description =
+                            "끝까지 이어간 챌린지가 여기에 표시돼요.",
+                        icon =
+                            "🏆"
+                    )
+                }
+
+            } else {
+
+                items(
+                    items =
+                        completedChallenges,
+                    key = {
+                        it.id
+                    }
+                ) { challenge ->
+
+                    CompletedChallengeCard(
+                        title =
+                            challenge.title,
+                        description =
+                            challenge.description,
+                        startDate =
+                            challenge.startDate,
+                        endDate =
+                            challenge.endDate,
+                        onChallengeClick = {
+
+                            onChallengeClick(
+                                challenge.id
+                            )
+                        }
                     )
                 }
             }
@@ -1122,11 +1280,13 @@ private fun MyChallengeCard(
     description: String?,
     startDate: String,
     endDate: String,
-    friendNames: List<String>,
     friends: List<ChallengeFriendUi>,
     invitingFriendId: Long?,
     onChallengeClick: () -> Unit,
-    onInviteFriend: (Long) -> Unit
+    isOwner: Boolean,
+    onInviteFriend: (Long) -> Unit,
+    invitedFriendIds: Set<Long>,
+    friendCount: Int,
 ) {
 
     Card(
@@ -1279,6 +1439,60 @@ private fun MyChallengeCard(
                                 0xFF777F7A
                             )
                     )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                5.dp
+                            )
+                    )
+
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Text(
+                            text =
+                                "👥",
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    5.dp
+                                )
+                        )
+
+                        Text(
+                            text =
+                                when {
+
+                                    friendCount == 0 ->
+                                        "혼자 진행 중"
+
+                                    friendCount == 1 ->
+                                        "친구 1명과 함께"
+
+                                    else ->
+                                        "친구 ${friendCount}명과 함께"
+                                },
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+                            color =
+                                Color(
+                                    0xFF63806F
+                                ),
+                            fontWeight =
+                                FontWeight.Medium
+                        )
+                    }
                 }
 
                 Surface(
@@ -1338,6 +1552,7 @@ private fun MyChallengeCard(
             }
 
             if (
+                isOwner &&
                 friends.isNotEmpty()
             ) {
 
@@ -1384,8 +1599,15 @@ private fun MyChallengeCard(
                         )
                 )
 
-                friends.forEach {
-                        friend ->
+                friends.forEach { friend ->
+
+                    val isRequesting =
+                        invitingFriendId ==
+                                friend.id
+
+                    val isInvited =
+                        friend.id in
+                                invitedFriendIds
 
                     Row(
                         modifier =
@@ -1394,46 +1616,11 @@ private fun MyChallengeCard(
                             Alignment.CenterVertically
                     ) {
 
-                        Box(
-                            modifier = Modifier
-                                .size(
-                                    28.dp
-                                )
-                                .clip(
-                                    CircleShape
-                                )
-                                .background(
-                                    Color(
-                                        0xFFE9F0E5
-                                    )
-                                ),
-                            contentAlignment =
-                                Alignment.Center
-                        ) {
-
-                            Text(
-                                text =
-                                    friend.nickname
-                                        .firstOrNull()
-                                        ?.toString()
-                                        ?: "?"
-                            )
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(
-                                    8.dp
-                                )
-                        )
-
                         Text(
                             text =
                                 friend.nickname,
                             modifier =
-                                Modifier.weight(
-                                    1f
-                                ),
+                                Modifier.weight(1f),
                             style =
                                 MaterialTheme
                                     .typography
@@ -1448,10 +1635,8 @@ private fun MyChallengeCard(
                                 )
                             },
 
-                            // 이 친구에게 초대 보내는 중이면 잠금
                             enabled =
-                                invitingFriendId !=
-                                        friend.id,
+                                !isRequesting,
 
                             shape =
                                 RoundedCornerShape(
@@ -1461,13 +1646,16 @@ private fun MyChallengeCard(
 
                             Text(
                                 text =
-                                    if (
-                                        invitingFriendId ==
-                                        friend.id
-                                    ) {
-                                        "초대 중..."
-                                    } else {
-                                        "초대"
+                                    when {
+
+                                        isRequesting ->
+                                            "초대 중..."
+
+                                        isInvited ->
+                                            "초대 중..."
+
+                                        else ->
+                                            "초대"
                                     }
                             )
                         }
@@ -1476,7 +1664,7 @@ private fun MyChallengeCard(
                     Spacer(
                         modifier =
                             Modifier.height(
-                                6.dp
+                                8.dp
                             )
                     )
                 }
@@ -1485,6 +1673,7 @@ private fun MyChallengeCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChallengeCreateSection(
     title: String,
@@ -1499,6 +1688,16 @@ private fun ChallengeCreateSection(
     onEndDateChange: (String) -> Unit,
     onCreate: () -> Unit
 ) {
+
+    var showStartDatePicker by
+    remember {
+        mutableStateOf(false)
+    }
+
+    var showEndDatePicker by
+    remember {
+        mutableStateOf(false)
+    }
 
     Column(
         modifier = Modifier
@@ -1752,83 +1951,109 @@ private fun ChallengeCreateSection(
                 )
 
                 Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
                     horizontalArrangement =
                         Arrangement.spacedBy(
                             8.dp
                         )
                 ) {
 
-                    OutlinedTextField(
-                        value =
-                            startDate,
-
-                        onValueChange =
-                            onStartDateChange,
-
-                        modifier =
-                            Modifier.weight(1f),
-
-                        label = {
-
-                            Text(
-                                "시작일"
-                            )
+                    // 시작일 선택
+                    OutlinedButton(
+                        onClick = {
+                            showStartDatePicker = true
                         },
-
-                        placeholder = {
-
-                            Text(
-                                "2026-09-15"
-                            )
-                        },
-
                         enabled =
                             !isSubmitting,
-
+                        modifier =
+                            Modifier.weight(1f),
                         shape =
                             RoundedCornerShape(
                                 15.dp
-                            ),
+                            )
+                    ) {
 
-                        singleLine =
-                            true
-                    )
-
-                    OutlinedTextField(
-                        value =
-                            endDate,
-
-                        onValueChange =
-                            onEndDateChange,
-
-                        modifier =
-                            Modifier.weight(1f),
-
-                        label = {
+                        Column(
+                            modifier =
+                                Modifier.padding(
+                                    vertical = 6.dp
+                                )
+                        ) {
 
                             Text(
-                                "종료일"
+                                text =
+                                    "시작일",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall
                             )
-                        },
 
-                        placeholder = {
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        4.dp
+                                    )
+                            )
 
                             Text(
-                                "2026-09-30"
+                                text =
+                                    startDate
+                                        .ifBlank {
+                                            "날짜 선택"
+                                        }
                             )
-                        },
+                        }
+                    }
 
+                    // 종료일 선택
+                    OutlinedButton(
+                        onClick = {
+                            showEndDatePicker = true
+                        },
                         enabled =
                             !isSubmitting,
-
+                        modifier =
+                            Modifier.weight(1f),
                         shape =
                             RoundedCornerShape(
                                 15.dp
-                            ),
+                            )
+                    ) {
 
-                        singleLine =
-                            true
-                    )
+                        Column(
+                            modifier =
+                                Modifier.padding(
+                                    vertical = 6.dp
+                                )
+                        ) {
+
+                            Text(
+                                text =
+                                    "종료일",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        4.dp
+                                    )
+                            )
+
+                            Text(
+                                text =
+                                    endDate
+                                        .ifBlank {
+                                            "날짜 선택"
+                                        }
+                            )
+                        }
+                    }
                 }
 
                 // 입력 검증 오류
@@ -1873,9 +2098,192 @@ private fun ChallengeCreateSection(
                     }
                 }
 
+                // 시작일 달력
+                if (
+                    showStartDatePicker
+                ) {
+
+                    val startDatePickerState =
+                        rememberDatePickerState()
+
+                    DatePickerDialog(
+                        onDismissRequest = {
+                            showStartDatePicker = false
+                        },
+
+                        confirmButton = {
+
+                            TextButton(
+                                onClick = {
+
+                                    val selectedMillis =
+                                        startDatePickerState
+                                            .selectedDateMillis
+
+                                    if (
+                                        selectedMillis != null
+                                    ) {
+
+                                        val selectedDate =
+                                            Instant
+                                                .ofEpochMilli(
+                                                    selectedMillis
+                                                )
+                                                .atZone(
+                                                    ZoneId.systemDefault()
+                                                )
+                                                .toLocalDate()
+
+                                        onStartDateChange(
+                                            selectedDate.toString()
+                                        )
+
+                                        // 기존 종료일이 새 시작일보다 빠르면 초기화
+                                        if (
+                                            endDate.isNotBlank() &&
+                                            LocalDate.parse(endDate)
+                                                .isBefore(selectedDate)
+                                        ) {
+
+                                            onEndDateChange("")
+                                        }
+                                    }
+
+                                    showStartDatePicker =
+                                        false
+                                }
+                            ) {
+
+                                Text("확인")
+                            }
+                        },
+
+                        dismissButton = {
+
+                            TextButton(
+                                onClick = {
+                                    showStartDatePicker =
+                                        false
+                                }
+                            ) {
+
+                                Text("취소")
+                            }
+                        }
+                    ) {
+
+                        DatePicker(
+                            state =
+                                startDatePickerState
+                        )
+                    }
+                }
+
+                // 종료일 달력
+                if (
+                    showEndDatePicker
+                ) {
+
+                    val minimumEndDateMillis =
+                        startDate
+                            .takeIf {
+                                it.isNotBlank()
+                            }
+                            ?.let { date ->
+
+                                LocalDate
+                                    .parse(date)
+                                    .atStartOfDay(
+                                        ZoneOffset.UTC
+                                    )
+                                    .toInstant()
+                                    .toEpochMilli()
+                            }
+
+                    val endDatePickerState =
+                        rememberDatePickerState(
+                            selectableDates =
+                                object : SelectableDates {
+
+                                    override fun isSelectableDate(
+                                        utcTimeMillis: Long
+                                    ): Boolean {
+
+                                        return minimumEndDateMillis == null ||
+                                                utcTimeMillis >=
+                                                minimumEndDateMillis
+                                    }
+                                }
+                        )
+
+                    DatePickerDialog(
+                        onDismissRequest = {
+                            showEndDatePicker = false
+                        },
+
+                        confirmButton = {
+
+                            TextButton(
+                                onClick = {
+
+                                    val selectedMillis =
+                                        endDatePickerState
+                                            .selectedDateMillis
+
+                                    if (
+                                        selectedMillis != null
+                                    ) {
+
+                                        val selectedDate =
+                                            Instant
+                                                .ofEpochMilli(
+                                                    selectedMillis
+                                                )
+                                                .atZone(
+                                                    ZoneId.systemDefault()
+                                                )
+                                                .toLocalDate()
+
+                                        onEndDateChange(
+                                            selectedDate.toString()
+                                        )
+                                    }
+
+                                    showEndDatePicker =
+                                        false
+                                }
+                            ) {
+
+                                Text("확인")
+                            }
+                        },
+
+                        dismissButton = {
+
+                            TextButton(
+                                onClick = {
+                                    showEndDatePicker =
+                                        false
+                                }
+                            ) {
+
+                                Text("취소")
+                            }
+                        }
+                    ) {
+
+                        DatePicker(
+                            state =
+                                endDatePickerState
+                        )
+                    }
+                }
+
                 Spacer(
                     modifier =
-                        Modifier.height(14.dp)
+                        Modifier.height(
+                            14.dp
+                        )
                 )
 
                 Button(
@@ -2134,5 +2542,186 @@ private fun challengeIcon(
 
         else ->
             "🌱"
+    }
+}
+
+@Composable
+private fun CompletedChallengeCard(
+    title: String,
+    description: String?,
+    startDate: String,
+    endDate: String,
+    onChallengeClick: () -> Unit
+) {
+
+    Card(
+        onClick =
+            onChallengeClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 1.dp
+            )
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    16.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .size(
+                        52.dp
+                    )
+                    .clip(
+                        RoundedCornerShape(
+                            17.dp
+                        )
+                    )
+                    .background(
+                        Color(
+                            0xFFF1F4EC
+                        )
+                    ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Text(
+                    text =
+                        "🏆",
+                    style =
+                        MaterialTheme.typography
+                            .headlineMedium
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        13.dp
+                    )
+            )
+
+            Column(
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
+            ) {
+
+                Text(
+                    text =
+                        title,
+                    style =
+                        MaterialTheme.typography
+                            .titleMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF25362F
+                        )
+                )
+
+                if (
+                    !description
+                        .isNullOrBlank()
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                3.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            description,
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            Color(
+                                0xFF7A847E
+                            ),
+                        maxLines = 1,
+                        overflow =
+                            TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            5.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        "${formatDate(startDate)} ~ " +
+                                formatDate(endDate),
+                    style =
+                        MaterialTheme.typography
+                            .bodySmall,
+                    color =
+                        Color(
+                            0xFF777F7A
+                        )
+                )
+            }
+
+            Surface(
+                shape =
+                    RoundedCornerShape(
+                        50.dp
+                    ),
+                color =
+                    Color(
+                        0xFFEAF2E6
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "완료",
+                    modifier =
+                        Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 7.dp
+                        ),
+                    style =
+                        MaterialTheme.typography
+                            .labelMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF557052
+                        )
+                )
+            }
+        }
     }
 }

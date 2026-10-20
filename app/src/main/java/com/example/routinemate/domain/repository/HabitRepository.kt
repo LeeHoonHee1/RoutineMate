@@ -1,6 +1,8 @@
 package com.example.routinemate.domain.repository
 
+import com.example.routinemate.data.remote.dto.habit.HabitCategory
 import com.example.routinemate.data.remote.dto.habit.HabitCompletionResponse
+import com.example.routinemate.data.remote.dto.habit.HabitRepeatDay
 import com.example.routinemate.data.remote.dto.habit.HabitResponse
 
 interface HabitRepository {
@@ -8,7 +10,9 @@ interface HabitRepository {
     // 새로운 습관 생성
     suspend fun createHabit(
         title: String,
-        description: String?
+        description: String?,
+        category: HabitCategory,
+        repeatDays: Set<HabitRepeatDay>
     ): HabitResponse
 
     // 현재 사용자의 습관 목록 조회
@@ -18,7 +22,9 @@ interface HabitRepository {
     suspend fun updateHabit(
         habitId: Long,
         title: String,
-        description: String?
+        description: String?,
+        category: HabitCategory,
+        repeatDays: Set<HabitRepeatDay>
     ): HabitResponse
 
     // 습관 삭제
@@ -35,4 +41,7 @@ interface HabitRepository {
     suspend fun cancelHabitCompletion(
         habitId: Long
     )
+
+    // 오늘 예정된 습관 목록 조회
+    suspend fun getTodayHabits(): List<HabitResponse>
 }

@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routinemate.data.remote.dto.habit.HabitResponse
+import com.example.routinemate.data.remote.dto.habit.HabitCategory
+import com.example.routinemate.data.remote.dto.habit.HabitRepeatDay
 
 @Composable
 fun HabitScreen(
@@ -68,10 +70,6 @@ fun HabitScreen(
         mutableStateOf(false)
     }
 
-    var selectedCategory by remember {
-        mutableStateOf<HabitCategory?>(null)
-    }
-
     // 화면 진입 시 습관 목록 조회
     LaunchedEffect(Unit) {
         viewModel.loadHabits()
@@ -87,8 +85,6 @@ fun HabitScreen(
         ) {
 
             showHabitDialog = false
-
-            selectedCategory = null
 
             viewModel.consumeSaveSuccess()
         }
@@ -247,17 +243,17 @@ fun HabitScreen(
                         )
 
                         if (
-                            uiState.habits
+                            uiState.todayHabits
                                 .isEmpty()
                         ) {
 
-                            EmptyHabitCard()
+                            EmptyTodayHabitCard()
 
                         } else {
 
                             TodayRoutineCard(
                                 habits =
-                                    uiState.habits,
+                                    uiState.todayHabits,
                                 onToggle = {
                                         habit ->
 
@@ -423,7 +419,10 @@ fun HabitScreen(
                 uiState.editingHabitId != null,
 
             selectedCategory =
-                selectedCategory,
+                uiState.selectedCategory,
+
+            selectedRepeatDays =
+                uiState.selectedRepeatDays,
 
             title =
                 uiState.title,
@@ -440,21 +439,32 @@ fun HabitScreen(
             operationErrorMessage =
                 uiState.errorMessage,
 
+            onEveryDaySelected = {
+                viewModel.onEveryDayToggle()
+            },
+
             onCategorySelected = { category ->
 
-                selectedCategory =
+                // 카테고리 변경
+                viewModel.onCategoryChange(
                     category
+                )
 
-                // 새 습관일 때 카테고리 기본 이름 입력
-                if (
-                    uiState.editingHabitId == null
-                ) {
-
-                    viewModel.onTitleChange(
-                        category.defaultTitle
+                // 카테고리에 맞는 기본 이름 자동 입력
+                viewModel.onTitleChange(
+                    categoryDefaultTitle(
+                        category
                     )
-                }
+                )
             },
+
+            onRepeatDaySelected = { repeatDay ->
+
+                viewModel.onRepeatDayToggle(
+                    repeatDay
+                )
+            },
+
 
             onTitleChange =
                 viewModel::onTitleChange,
@@ -470,9 +480,6 @@ fun HabitScreen(
 
                     showHabitDialog =
                         false
-
-                    selectedCategory =
-                        null
 
                     viewModel.cancelEditing()
                 }
@@ -1251,8 +1258,8 @@ private fun TodayRoutineRow(
 
             Text(
                 text =
-                    habitIcon(
-                        habit.title
+                    categoryIcon(
+                        habit.category
                     ),
                 style =
                     MaterialTheme
@@ -1493,8 +1500,8 @@ private fun HabitManagementCard(
 
                     Text(
                         text =
-                            habitIcon(
-                                habit.title
+                            categoryIcon(
+                                habit.category
                             ),
                         style =
                             MaterialTheme
@@ -1563,8 +1570,7 @@ private fun HabitManagementCard(
                         habit.description
                     },
                 style =
-                    MaterialTheme
-                        .typography
+                    MaterialTheme.typography
                         .bodySmall,
                 color =
                     Color(
@@ -1573,9 +1579,49 @@ private fun HabitManagementCard(
                 minLines = 2,
                 maxLines = 2,
                 overflow =
-                    TextOverflow
-                        .Ellipsis
+                    TextOverflow.Ellipsis
             )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        10.dp
+                    )
+            )
+
+// 반복 요일 표시
+            Surface(
+                shape =
+                    RoundedCornerShape(
+                        50.dp
+                    ),
+                color =
+                    Color(
+                        0xFFF0F4EA
+                    )
+            ) {
+
+                Text(
+                    text =
+                        repeatDaysText(
+                            habit.repeatDays
+                        ),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = 10.dp,
+                            vertical = 5.dp
+                        ),
+                    style =
+                        MaterialTheme.typography
+                            .labelSmall,
+                    color =
+                        Color(
+                            0xFF60745F
+                        ),
+                    fontWeight =
+                        FontWeight.Medium
+                )
+            }
 
             Spacer(
                 modifier =
@@ -1728,85 +1774,78 @@ private fun EmptyHabitCard() {
     }
 }
 
-private enum class HabitCategory(
-    val label: String,
-    val icon: String,
-    val defaultTitle: String
-) {
-
-    WATER(
-        label = "물",
-        icon = "💧",
-        defaultTitle = "물 마시기"
-    ),
-
-    BOOK(
-        label = "책",
-        icon = "📖",
-        defaultTitle = "책 읽기"
-    ),
-
-    SLEEP(
-        label = "잠",
-        icon = "🌙",
-        defaultTitle = "잠자기"
-    ),
-
-    EXERCISE(
-        label = "운동",
-        icon = "🏃",
-        defaultTitle = "운동하기"
-    ),
-
-    STUDY(
-        label = "공부",
-        icon = "📚",
-        defaultTitle = "공부하기"
-    )
-}
-
-private fun habitIcon(
-    title: String
+private fun categoryLabel(
+    category: HabitCategory
 ): String {
 
-    return when {
+    return when (
+        category
+    ) {
 
-        title.contains(
+        HabitCategory.WATER ->
             "물"
-        ) ->
+
+        HabitCategory.BOOK ->
+            "책"
+
+        HabitCategory.SLEEP ->
+            "잠"
+
+        HabitCategory.EXERCISE ->
+            "운동"
+
+        HabitCategory.STUDY ->
+            "공부"
+    }
+}
+
+private fun categoryIcon(
+    category: HabitCategory
+): String {
+
+    return when (
+        category
+    ) {
+
+        HabitCategory.WATER ->
             "💧"
 
-        title.contains(
-            "책"
-        ) ||
-                title.contains(
-                    "독서"
-                ) ->
+        HabitCategory.BOOK ->
             "📖"
 
-        title.contains(
-            "운동"
-        ) ||
-                title.contains(
-                    "스트레칭"
-                ) ->
-            "🏃"
-
-        title.contains(
-            "잠"
-        ) ||
-                title.contains(
-                    "수면"
-                ) ->
+        HabitCategory.SLEEP ->
             "🌙"
 
-        title.contains(
-            "공부"
-        ) ->
-            "📚"
+        HabitCategory.EXERCISE ->
+            "🏃"
 
-        else ->
-            "🌱"
+        HabitCategory.STUDY ->
+            "📚"
+    }
+}
+
+private fun categoryDefaultTitle(
+    category: HabitCategory
+): String {
+
+    return when (
+        category
+    ) {
+
+        HabitCategory.WATER ->
+            "물 마시기"
+
+        HabitCategory.BOOK ->
+            "책 읽기"
+
+        HabitCategory.SLEEP ->
+            "잠자기"
+
+        HabitCategory.EXERCISE ->
+            "운동하기"
+
+        HabitCategory.STUDY ->
+            "공부하기"
     }
 }
 
@@ -1814,16 +1853,19 @@ private fun habitIcon(
 private fun HabitEditorDialog(
     isEditing: Boolean,
     selectedCategory: HabitCategory?,
+    selectedRepeatDays: Set<HabitRepeatDay>,
     title: String,
     description: String,
     isSubmitting: Boolean,
     inputErrorMessage: String?,
     operationErrorMessage: String?,
     onCategorySelected: (HabitCategory) -> Unit,
+    onRepeatDaySelected: (HabitRepeatDay) -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    onEveryDaySelected: () -> Unit,
 ) {
 
     val titleError =
@@ -1836,6 +1878,18 @@ private fun HabitEditorDialog(
         inputErrorMessage
             ?.contains(
                 "습관 설명"
+            ) == true
+
+    val categoryError =
+        inputErrorMessage
+            ?.contains(
+                "카테고리"
+            ) == true
+
+    val repeatDayError =
+        inputErrorMessage
+            ?.contains(
+                "반복 요일"
             ) == true
 
     AlertDialog(
@@ -1941,6 +1995,94 @@ private fun HabitEditorDialog(
                     onCategorySelected =
                         onCategorySelected
                 )
+
+                if (
+                    categoryError
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                6.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            inputErrorMessage
+                                ?: "",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .error
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            22.dp
+                        )
+                )
+
+                // 반복 요일
+                Text(
+                    text =
+                        "반복 요일",
+                    style =
+                        MaterialTheme.typography
+                            .titleMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF2A3B33
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            10.dp
+                        )
+                )
+
+                HabitRepeatDaySelector(
+                    selectedRepeatDays =
+                        selectedRepeatDays,
+                    onEveryDaySelected =
+                        onEveryDaySelected,
+                    onRepeatDaySelected =
+                        onRepeatDaySelected
+                )
+
+                if (
+                    repeatDayError
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                6.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            inputErrorMessage
+                                ?: "",
+                        style =
+                            MaterialTheme.typography
+                                .bodySmall,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .error
+                    )
+                }
 
                 Spacer(
                     modifier =
@@ -2455,7 +2597,9 @@ private fun HabitCategoryChip(
 
             Text(
                 text =
-                    category.icon,
+                    categoryIcon(
+                        category
+                    ),
                 style =
                     MaterialTheme.typography
                         .titleLarge
@@ -2468,7 +2612,9 @@ private fun HabitCategoryChip(
 
             Text(
                 text =
-                    category.label,
+                    categoryLabel(
+                        category
+                    ),
                 style =
                     MaterialTheme.typography
                         .labelLarge,
@@ -2487,4 +2633,349 @@ private fun HabitCategoryChip(
             )
         }
     }
+}
+
+@Composable
+private fun HabitRepeatDaySelector(
+    selectedRepeatDays: Set<HabitRepeatDay>,
+    onEveryDaySelected: () -> Unit,
+    onRepeatDaySelected: (HabitRepeatDay) -> Unit
+) {
+
+    val allDays =
+        HabitRepeatDay.entries.toSet()
+
+    val isEveryDaySelected =
+        selectedRepeatDays
+            .containsAll(
+                allDays
+            )
+
+    Column(
+        verticalArrangement =
+            Arrangement.spacedBy(
+                10.dp
+            )
+    ) {
+
+        // 매일 선택
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(
+                    42.dp
+                )
+                .clickable {
+                    onEveryDaySelected()
+                },
+            shape =
+                RoundedCornerShape(
+                    14.dp
+                ),
+            color =
+                if (
+                    isEveryDaySelected
+                ) {
+                    Color(
+                        0xFFE1EBDC
+                    )
+                } else {
+                    Color(
+                        0xFFF3F3EF
+                    )
+                },
+            border =
+                if (
+                    isEveryDaySelected
+                ) {
+
+                    androidx.compose.foundation.BorderStroke(
+                        width = 1.5.dp,
+                        color =
+                            Color(
+                                0xFF789474
+                            )
+                    )
+
+                } else {
+                    null
+                }
+        ) {
+
+            Box(
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Text(
+                    text =
+                        "매일",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    fontWeight =
+                        if (
+                            isEveryDaySelected
+                        ) {
+                            FontWeight.Bold
+                        } else {
+                            FontWeight.Medium
+                        },
+                    color =
+                        if (
+                            isEveryDaySelected
+                        ) {
+                            Color(
+                                0xFF476446
+                            )
+                        } else {
+                            Color(
+                                0xFF68736C
+                            )
+                        }
+                )
+            }
+        }
+
+        // 월 ~ 일
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.spacedBy(
+                    6.dp
+                )
+        ) {
+
+            HabitRepeatDay.entries
+                .forEach {
+                        repeatDay ->
+
+                    HabitRepeatDayChip(
+                        repeatDay =
+                            repeatDay,
+                        selected =
+                            selectedRepeatDays
+                                .contains(
+                                    repeatDay
+                                ),
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            ),
+                        onClick =
+                            onRepeatDaySelected
+                    )
+                }
+        }
+    }
+}
+
+@Composable
+private fun HabitRepeatDayChip(
+    repeatDay: HabitRepeatDay,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: (HabitRepeatDay) -> Unit
+) {
+
+    Surface(
+        modifier = modifier
+            .height(
+                42.dp
+            )
+            .clickable {
+
+                onClick(
+                    repeatDay
+                )
+            },
+        shape =
+            CircleShape,
+        color =
+            if (selected) {
+
+                Color(
+                    0xFFE1EBDC
+                )
+
+            } else {
+
+                Color(
+                    0xFFF3F3EF
+                )
+            },
+        border =
+            if (selected) {
+
+                androidx.compose.foundation.BorderStroke(
+                    width =
+                        1.5.dp,
+                    color =
+                        Color(
+                            0xFF789474
+                        )
+                )
+
+            } else {
+
+                null
+            }
+    ) {
+
+        Box(
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text =
+                    repeatDayLabel(
+                        repeatDay
+                    ),
+                style =
+                    MaterialTheme.typography
+                        .labelMedium,
+                fontWeight =
+                    if (selected) {
+
+                        FontWeight.Bold
+
+                    } else {
+
+                        FontWeight.Medium
+                    },
+                color =
+                    if (selected) {
+
+                        Color(
+                            0xFF476446
+                        )
+
+                    } else {
+
+                        Color(
+                            0xFF68736C
+                        )
+                    }
+            )
+        }
+    }
+}
+
+private fun repeatDayLabel(
+    repeatDay: HabitRepeatDay
+): String {
+
+    return when (
+        repeatDay
+    ) {
+
+        HabitRepeatDay.MONDAY ->
+            "월"
+
+        HabitRepeatDay.TUESDAY ->
+            "화"
+
+        HabitRepeatDay.WEDNESDAY ->
+            "수"
+
+        HabitRepeatDay.THURSDAY ->
+            "목"
+
+        HabitRepeatDay.FRIDAY ->
+            "금"
+
+        HabitRepeatDay.SATURDAY ->
+            "토"
+
+        HabitRepeatDay.SUNDAY ->
+            "일"
+    }
+}
+
+@Composable
+private fun EmptyTodayHabitCard() {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = Color.White
+            )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    22.dp
+                )
+        ) {
+
+            Text(
+                text =
+                    "오늘 예정된 습관이 없어요.",
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        5.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "오늘은 잠시 쉬어가도 좋아요.",
+                color =
+                    Color(
+                        0xFF858D87
+                    )
+            )
+        }
+    }
+}
+
+private fun repeatDaysText(
+    repeatDays: Set<HabitRepeatDay>
+): String {
+
+    val allDays =
+        HabitRepeatDay.entries.toSet()
+
+    // 월~일 전부 선택되어 있으면 "매일"
+    if (
+        repeatDays.containsAll(
+            allDays
+        )
+    ) {
+        return "매일"
+    }
+
+    return HabitRepeatDay.entries
+        .filter {
+            repeatDays.contains(
+                it
+            )
+        }
+        .joinToString(
+            separator = " · "
+        ) {
+            repeatDayLabel(
+                it
+            )
+        }
 }

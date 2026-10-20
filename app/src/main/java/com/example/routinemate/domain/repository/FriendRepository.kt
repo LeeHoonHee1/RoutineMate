@@ -32,4 +32,9 @@ interface FriendRepository {
     // 친구 목록 조회
     suspend fun getFriends():
             List<FriendUserResponse>
+
+    // 친구 삭제
+    suspend fun deleteFriend(
+        friendId: Long
+    )
 }

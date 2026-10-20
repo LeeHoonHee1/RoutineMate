@@ -1,5 +1,6 @@
 package com.example.routinemate.di
 
+import com.example.routinemate.data.remote.NetworkConstants.BASE_URL
 import com.example.routinemate.data.remote.api.AuthApi
 import com.example.routinemate.data.remote.api.FriendApi
 import com.example.routinemate.data.remote.api.HabitApi
@@ -20,12 +21,11 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Named
 import javax.inject.Singleton
 import com.example.routinemate.data.remote.api.ProfileApi
+import com.example.routinemate.data.remote.NetworkConstants
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    private const val BASE_URL = "http://192.168.45.34:8080/"
 
     @Provides
     @Singleton
@@ -71,7 +71,9 @@ object NetworkModule {
     ): Retrofit {
 
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(
+                NetworkConstants.BASE_URL
+            )
             .client(okHttpClient)
             .addConverterFactory(
                 json.asConverterFactory(
@@ -92,7 +94,9 @@ object NetworkModule {
     ): Retrofit {
 
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(
+                NetworkConstants.BASE_URL
+            )
             .client(okHttpClient)
             .addConverterFactory(
                 json.asConverterFactory(

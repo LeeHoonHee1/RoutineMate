@@ -382,4 +382,68 @@ class FriendViewModel @Inject constructor(
             )
         }
     }
+
+    // 친구 삭제
+    fun deleteFriend(
+        friendId: Long
+    ) {
+
+        // 같은 친구 삭제 요청 중이면 중복 클릭 방지
+        if (
+            _uiState.value
+                .deletingFriendId ==
+            friendId
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    deletingFriendId =
+                        friendId,
+                    errorMessage = null
+                )
+            }
+
+            try {
+
+                friendRepository
+                    .deleteFriend(
+                        friendId = friendId
+                    )
+
+                _uiState.update { state ->
+
+                    state.copy(
+                        // 삭제된 친구를 목록에서 바로 제거
+                        friends =
+                            state.friends
+                                .filter {
+                                    it.id != friendId
+                                },
+
+                        deletingFriendId =
+                            null,
+
+                        successMessage =
+                            "친구를 삭제했습니다."
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                _uiState.update {
+                    it.copy(
+                        deletingFriendId =
+                            null,
+
+                        errorMessage =
+                            "친구를 삭제하지 못했습니다."
+                    )
+                }
+            }
+        }
+    }
 }

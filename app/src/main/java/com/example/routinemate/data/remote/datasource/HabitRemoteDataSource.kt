@@ -23,6 +23,11 @@ class HabitRemoteDataSource @Inject constructor(
         return habitApi.getHabits()
     }
 
+    // 오늘 예정된 습관 목록 조회
+    suspend fun getTodayHabits(): List<HabitResponse> {
+        return habitApi.getTodayHabits()
+    }
+
     // 습관 수정
     suspend fun updateHabit(
         habitId: Long,

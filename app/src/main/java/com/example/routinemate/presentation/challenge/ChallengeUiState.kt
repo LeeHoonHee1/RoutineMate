@@ -15,6 +15,14 @@ data class ChallengeUiState(
     // 챌린지에 초대할 수 있는 내 친구
     val friends: List<FriendUserResponse> = emptyList(),
 
+    // 챌린지별 초대한 친구 ID
+    val invitedFriendIdsByChallenge:
+    Map<Long, Set<Long>> = emptyMap(),
+
+    // 챌린지별 현재 참여 중인 친구 ID
+    val joinedFriendIdsByChallenge:
+    Map<Long, Set<Long>> = emptyMap(),
+
     // 챌린지 생성 입력값
     val title: String = "",
     val description: String = "",
@@ -40,5 +48,8 @@ data class ChallengeUiState(
     val successMessage: String? = null,
 
     // 서버 / 네트워크 오류
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // 내가 생성자인 챌린지 ID
+    val ownerChallengeIds: Set<Long> = emptySet(),
 )

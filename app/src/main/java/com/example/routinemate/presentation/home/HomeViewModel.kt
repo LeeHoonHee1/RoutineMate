@@ -143,7 +143,7 @@ class HomeViewModel @Inject constructor(
         try {
 
             val habits =
-                habitRepository.getHabits()
+                habitRepository.getTodayHabits()
 
             val completedCount =
                 habits.count { habit ->

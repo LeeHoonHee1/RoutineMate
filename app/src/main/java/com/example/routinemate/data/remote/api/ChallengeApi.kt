@@ -92,4 +92,22 @@ interface ChallengeApi {
     suspend fun cancelChallengeCompletion(
         @Path("challengeId") challengeId: Long
     )
+
+    // 챌린지 나가기
+    @DELETE("challenges/{challengeId}/leave")
+    suspend fun leaveChallenge(
+        @Path("challengeId") challengeId: Long
+    )
+
+    // 챌린지 삭제
+    @DELETE("challenges/{challengeId}")
+    suspend fun deleteChallenge(
+        @Path("challengeId") challengeId: Long
+    )
+
+    // 챌린지 멤버 초대/참여 상태 조회
+    @GET("challenges/{challengeId}/member-statuses")
+    suspend fun getChallengeMemberStatuses(
+        @Path("challengeId") challengeId: Long
+    ): List<ChallengeMemberResponse>
 }

@@ -103,7 +103,7 @@ class TodayRoutineViewModel @Inject constructor(
     private suspend fun refreshData() {
 
         val habits =
-            habitRepository.getHabits()
+            habitRepository.getTodayHabits()
 
         val completedCount =
             habits.count { habit ->

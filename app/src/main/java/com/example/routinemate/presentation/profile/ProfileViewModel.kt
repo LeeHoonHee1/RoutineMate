@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -64,7 +65,8 @@ class ProfileViewModel @Inject constructor(
                     it.copy(
                         profile = profile,
                         summary = summary,
-                        nicknameInput = profile.nickname,
+                        nicknameInput =
+                            profile.nickname,
                         isLoading = false
                     )
                 }
@@ -240,6 +242,65 @@ class ProfileViewModel @Inject constructor(
 
                         errorMessage =
                             "닉네임 수정에 실패했습니다."
+                    )
+                }
+            }
+        }
+    }
+
+    // 실제 프로필 이미지 파일 업로드
+    fun uploadProfileImage(
+        file: MultipartBody.Part
+    ) {
+
+        // 업로드 중 연타 방지
+        if (
+            _uiState.value.isSavingProfileImage
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    isSavingProfileImage =
+                        true,
+                    errorMessage =
+                        null
+                )
+            }
+
+            try {
+
+                val updatedProfile =
+                    profileRepository
+                        .uploadProfileImage(
+                            file = file
+                        )
+
+                _uiState.update {
+                    it.copy(
+                        profile =
+                            updatedProfile,
+
+                        isSavingProfileImage =
+                            false,
+
+                        successMessage =
+                            "프로필 이미지를 변경했습니다."
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                _uiState.update {
+                    it.copy(
+                        isSavingProfileImage =
+                            false,
+
+                        errorMessage =
+                            "프로필 이미지 업로드에 실패했습니다."
                     )
                 }
             }

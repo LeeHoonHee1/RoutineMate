@@ -2,6 +2,7 @@ package com.example.routinemate.presentation.habit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.routinemate.data.remote.dto.habit.HabitCategory
 import com.example.routinemate.data.remote.error.ApiErrorParser
 import com.example.routinemate.domain.repository.HabitRepository
 import com.example.routinemate.domain.validator.HabitValidator
@@ -14,6 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
+import com.example.routinemate.data.remote.dto.habit.HabitRepeatDay
+import java.time.DayOfWeek
+import java.time.LocalDate
 
 @HiltViewModel
 class HabitViewModel @Inject constructor(
@@ -129,6 +133,24 @@ class HabitViewModel @Inject constructor(
         val description =
             uiState.value.description.trim()
 
+        val category =
+            uiState.value.selectedCategory
+
+        val repeatDays =
+            uiState.value.selectedRepeatDays
+
+        if (category == null) {
+
+            _uiState.update {
+                it.copy(
+                    inputErrorMessage =
+                        "습관 카테고리를 선택해주세요."
+                )
+            }
+
+            return
+        }
+
         val validationMessage =
             habitValidator.validate(
                 title = title,
@@ -144,6 +166,20 @@ class HabitViewModel @Inject constructor(
                 it.copy(
                     inputErrorMessage =
                         validationMessage
+                )
+            }
+
+            return
+        }
+
+        if (
+            repeatDays.isEmpty()
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    inputErrorMessage =
+                        "반복 요일을 하나 이상 선택해주세요."
                 )
             }
 
@@ -169,7 +205,9 @@ class HabitViewModel @Inject constructor(
                     description =
                         description.ifBlank {
                             null
-                        }
+                        },
+                    category = category,
+                    repeatDays = repeatDays
                 )
 
                 // 생성은 성공했으므로 먼저 성공 처리
@@ -179,7 +217,9 @@ class HabitViewModel @Inject constructor(
                         description = "",
                         isSubmitting = false,
                         isCreateSuccess = true,
-                        isSaveSuccess = true
+                        isSaveSuccess = true,
+                        selectedCategory = null,
+                        selectedRepeatDays = emptySet()
                     )
                 }
 
@@ -269,23 +309,21 @@ class HabitViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                editingHabitId =
-                    habit.id,
+                editingHabitId = habit.id,
 
-                title =
-                    habit.title,
+                title = habit.title,
 
-                description =
-                    habit.description.orEmpty(),
+                description = habit.description.orEmpty(),
 
-                inputErrorMessage =
-                    null,
+                selectedCategory = habit.category,
 
-                errorMessage =
-                    null,
+                inputErrorMessage = null,
 
-                isSaveSuccess =
-                    false
+                errorMessage = null,
+
+                isSaveSuccess = false,
+
+                selectedRepeatDays = habit.repeatDays,
             )
         }
     }
@@ -308,6 +346,38 @@ class HabitViewModel @Inject constructor(
 
         val description =
             uiState.value.description.trim()
+
+        val category =
+            uiState.value.selectedCategory
+
+        val repeatDays =
+            uiState.value.selectedRepeatDays
+
+        if (category == null) {
+
+            _uiState.update {
+                it.copy(
+                    inputErrorMessage =
+                        "습관 카테고리를 선택해주세요."
+                )
+            }
+
+            return
+        }
+
+        if (
+            repeatDays.isEmpty()
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    inputErrorMessage =
+                        "반복 요일을 하나 이상 선택해주세요."
+                )
+            }
+
+            return
+        }
 
         val validationMessage =
             habitValidator.validate(
@@ -349,16 +419,20 @@ class HabitViewModel @Inject constructor(
                     description =
                         description.ifBlank {
                             null
-                        }
+                        },
+                    category = category,
+                    repeatDays = repeatDays
                 )
 
                 _uiState.update {
                     it.copy(
                         title = "",
                         description = "",
+                        selectedCategory = null,
                         editingHabitId = null,
                         isSubmitting = false,
-                        isSaveSuccess = true
+                        isSaveSuccess = true,
+                        selectedRepeatDays = emptySet(),
                     )
                 }
 
@@ -397,8 +471,10 @@ class HabitViewModel @Inject constructor(
                 editingHabitId = null,
                 title = "",
                 description = "",
+                selectedCategory = null,
                 inputErrorMessage = null,
-                isSaveSuccess = false
+                isSaveSuccess = false,
+                selectedRepeatDays = emptySet(),
             )
         }
     }
@@ -409,7 +485,9 @@ class HabitViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 isSaveSuccess = false,
-                isCreateSuccess = false
+                isCreateSuccess = false,
+                selectedCategory = null,
+                selectedRepeatDays = emptySet()
             )
         }
     }
@@ -517,30 +595,52 @@ class HabitViewModel @Inject constructor(
         }
     }
 
-    // 습관 목록 + 진행률 계산
+    // 습관 목록 + 오늘 습관 + 진행률 계산
     private fun updateHabitList(
         habits:
         List<com.example.routinemate.data.remote.dto.habit.HabitResponse>
     ) {
 
+        // 오늘 요일 확인
+        val today =
+            LocalDate.now()
+                .dayOfWeek
+
+        // 오늘 해야 하는 습관만 필터링
+        val todayHabits =
+            habits.filter { habit ->
+
+                habit.repeatDays.contains(
+                    today.toHabitRepeatDay()
+                )
+            }
+
+        // 오늘 습관 중 완료한 개수
         val completedCount =
-            habits.count { habit ->
+            todayHabits.count { habit ->
                 habit.isCompletedToday
             }
 
+        // 오늘 습관 기준 달성률 계산
         val completionRate =
             calculateCompletionRate(
                 completedCount =
                     completedCount,
                 totalCount =
-                    habits.size
+                    todayHabits.size
             )
 
         _uiState.update {
             it.copy(
+                // 전체 습관
                 habits = habits,
+
+                // 오늘 해야 하는 습관
+                todayHabits = todayHabits,
+
+                // 오늘 기준 통계
                 totalHabitCount =
-                    habits.size,
+                    todayHabits.size,
                 completedHabitCount =
                     completedCount,
                 completionRate =
@@ -589,4 +689,110 @@ class HabitViewModel @Inject constructor(
                         totalCount
                 ).roundToInt()
     }
+
+    // 습관 카테고리 변경
+    fun onCategoryChange(
+        category: HabitCategory
+    ) {
+
+        _uiState.update {
+            it.copy(
+                selectedCategory = category,
+                inputErrorMessage = null
+            )
+        }
+    }
+
+    // 반복 요일 선택 / 해제
+    fun onRepeatDayToggle(
+        repeatDay: HabitRepeatDay
+    ) {
+
+        _uiState.update { state ->
+
+            val updatedDays =
+                state.selectedRepeatDays
+                    .toMutableSet()
+
+            if (
+                updatedDays.contains(
+                    repeatDay
+                )
+            ) {
+
+                updatedDays.remove(
+                    repeatDay
+                )
+
+            } else {
+
+                updatedDays.add(
+                    repeatDay
+                )
+            }
+
+            state.copy(
+                selectedRepeatDays =
+                    updatedDays,
+                inputErrorMessage = null
+            )
+        }
+    }
+
+    // 모든 요일 선택 / 해제
+    fun onEveryDayToggle() {
+
+        _uiState.update { state ->
+
+            val allDays =
+                HabitRepeatDay.entries.toSet()
+
+            val isEveryDaySelected =
+                state.selectedRepeatDays
+                    .containsAll(
+                        allDays
+                    )
+
+            state.copy(
+                selectedRepeatDays =
+                    if (
+                        isEveryDaySelected
+                    ) {
+                        emptySet()
+                    } else {
+                        allDays
+                    },
+                inputErrorMessage = null
+            )
+        }
+    }
 }
+
+// Java 요일을 앱의 반복 요일 enum으로 변환
+private fun DayOfWeek.toHabitRepeatDay(): HabitRepeatDay {
+
+    return when (this) {
+
+        DayOfWeek.MONDAY ->
+            HabitRepeatDay.MONDAY
+
+        DayOfWeek.TUESDAY ->
+            HabitRepeatDay.TUESDAY
+
+        DayOfWeek.WEDNESDAY ->
+            HabitRepeatDay.WEDNESDAY
+
+        DayOfWeek.THURSDAY ->
+            HabitRepeatDay.THURSDAY
+
+        DayOfWeek.FRIDAY ->
+            HabitRepeatDay.FRIDAY
+
+        DayOfWeek.SATURDAY ->
+            HabitRepeatDay.SATURDAY
+
+        DayOfWeek.SUNDAY ->
+            HabitRepeatDay.SUNDAY
+    }
+}
+

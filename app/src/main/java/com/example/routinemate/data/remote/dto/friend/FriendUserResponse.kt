@@ -12,5 +12,8 @@ data class FriendUserResponse(
     val email: String,
 
     // 사용자 닉네임
-    val nickname: String
+    val nickname: String,
+
+    // 함께 참여한 챌린지 수
+    val sharedChallengeCount: Long = 0
 )

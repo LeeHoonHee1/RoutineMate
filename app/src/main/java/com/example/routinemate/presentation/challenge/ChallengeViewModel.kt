@@ -59,14 +59,118 @@ class ChallengeViewModel @Inject constructor(
                     friendRepository
                         .getFriends()
 
+                // 챌린지별 초대 중인 친구
+                val invitedMap =
+                    mutableMapOf<Long, Set<Long>>()
+
+                // 챌린지별 참여 중인 친구
+                val joinedMap =
+                    mutableMapOf<Long, Set<Long>>()
+
+                // 내가 생성자인 챌린지
+                val ownerIds =
+                    mutableSetOf<Long>()
+
+                challenges.forEach { challenge ->
+
+                    /*
+                     * OWNER인 경우에만 member-statuses 조회가 성공한다.
+                     * 성공하면 INVITED + JOINED 상태를 모두 복원한다.
+                     */
+                    val memberStatuses =
+                        runCatching {
+
+                            challengeRepository
+                                .getChallengeMemberStatuses(
+                                    challengeId =
+                                        challenge.id
+                                )
+                        }
+                            .getOrNull()
+
+                    if (
+                        memberStatuses != null
+                    ) {
+
+                        // 조회 성공 = 내가 OWNER
+                        ownerIds.add(
+                            challenge.id
+                        )
+
+                        invitedMap[
+                            challenge.id
+                        ] =
+                            memberStatuses
+                                .filter { member ->
+                                    member.status ==
+                                            "INVITED"
+                                }
+                                .map { member ->
+                                    member.userId
+                                }
+                                .toSet()
+
+                        joinedMap[
+                            challenge.id
+                        ] =
+                            memberStatuses
+                                .filter { member ->
+                                    member.status ==
+                                            "JOINED"
+                                }
+                                .map { member ->
+                                    member.userId
+                                }
+                                .toSet()
+
+                    } else {
+
+                        /*
+                         * 내가 MEMBER인 챌린지는
+                         * 기존 참여자 조회만 사용한다.
+                         */
+                        val members =
+                            challengeRepository
+                                .getChallengeMembers(
+                                    challengeId =
+                                        challenge.id
+                                )
+
+                        joinedMap[
+                            challenge.id
+                        ] =
+                            members
+                                .filter { member ->
+                                    member.status ==
+                                            "JOINED"
+                                }
+                                .map { member ->
+                                    member.userId
+                                }
+                                .toSet()
+                    }
+                }
+
                 _uiState.update {
                     it.copy(
                         challenges =
                             challenges,
+
                         invitations =
                             invitations,
+
                         friends =
                             friends,
+
+                        invitedFriendIdsByChallenge =
+                            invitedMap,
+
+                        joinedFriendIdsByChallenge =
+                            joinedMap,
+
+                        ownerChallengeIds =
+                            ownerIds,
+
                         isLoading =
                             false
                     )
@@ -190,7 +294,6 @@ class ChallengeViewModel @Inject constructor(
                 endDate = endDate
             )
 
-        // 입력값 검증 실패
         if (
             validationMessage != null
         ) {
@@ -235,10 +338,6 @@ class ChallengeViewModel @Inject constructor(
                         )
                     )
 
-                /*
-                 * 생성 자체는 성공했으므로
-                 * 입력값을 먼저 초기화한다.
-                 */
                 _uiState.update {
                     it.copy(
                         title = "",
@@ -251,7 +350,6 @@ class ChallengeViewModel @Inject constructor(
                     )
                 }
 
-                // 최신 목록 조회
                 refreshChallenges()
 
             } catch (e: Exception) {
@@ -273,11 +371,54 @@ class ChallengeViewModel @Inject constructor(
         friendId: Long
     ) {
 
-        // 같은 친구에게 초대 요청 중이면 중복 방지
+        val state =
+            _uiState.value
+
+        // 현재 이 친구에게 요청 중이면 중복 클릭 방지
         if (
-            _uiState.value.invitingFriendId ==
+            state.invitingFriendId ==
             friendId
         ) {
+            return
+        }
+
+        // 이미 해당 챌린지에 참여 중인 친구
+        val joinedFriendIds =
+            state.joinedFriendIdsByChallenge[
+                challengeId
+            ] ?: emptySet()
+
+        if (
+            friendId in joinedFriendIds
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "이미 참여 중인 친구입니다."
+                )
+            }
+
+            return
+        }
+
+        // 이미 초대한 친구
+        val invitedFriendIds =
+            state.invitedFriendIdsByChallenge[
+                challengeId
+            ] ?: emptySet()
+
+        if (
+            friendId in invitedFriendIds
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "이미 초대한 친구입니다."
+                )
+            }
+
             return
         }
 
@@ -285,8 +426,10 @@ class ChallengeViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    invitingFriendId = friendId,
-                    errorMessage = null
+                    invitingFriendId =
+                        friendId,
+                    errorMessage =
+                        null
                 )
             }
 
@@ -300,9 +443,31 @@ class ChallengeViewModel @Inject constructor(
                             friendId
                     )
 
-                _uiState.update {
-                    it.copy(
-                        invitingFriendId = null,
+                _uiState.update { currentState ->
+
+                    val currentInvitedIds =
+                        currentState
+                            .invitedFriendIdsByChallenge[
+                            challengeId
+                        ]
+                            ?: emptySet()
+
+                    currentState.copy(
+                        // 초대한 친구를 기억
+                        invitedFriendIdsByChallenge =
+                            currentState
+                                .invitedFriendIdsByChallenge +
+                                    (
+                                            challengeId to
+                                                    (
+                                                            currentInvitedIds +
+                                                                    friendId
+                                                            )
+                                            ),
+
+                        invitingFriendId =
+                            null,
+
                         successMessage =
                             "친구에게 챌린지 초대를 보냈습니다."
                     )
@@ -312,7 +477,8 @@ class ChallengeViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
-                        invitingFriendId = null,
+                        invitingFriendId =
+                            null,
                         errorMessage =
                             "친구를 초대하지 못했습니다."
                     )
@@ -326,9 +492,10 @@ class ChallengeViewModel @Inject constructor(
         memberId: Long
     ) {
 
-        // 이미 처리 중인 초대면 중복 방지
+        // 같은 초대를 처리 중이면 막기
         if (
-            _uiState.value.processingInvitationId ==
+            _uiState.value
+                .processingInvitationId ==
             memberId
         ) {
             return
@@ -340,7 +507,8 @@ class ChallengeViewModel @Inject constructor(
                 it.copy(
                     processingInvitationId =
                         memberId,
-                    errorMessage = null
+                    errorMessage =
+                        null
                 )
             }
 
@@ -361,8 +529,10 @@ class ChallengeViewModel @Inject constructor(
                                     it.memberId !=
                                             memberId
                                 },
+
                         processingInvitationId =
                             null,
+
                         successMessage =
                             "챌린지 초대를 수락했습니다."
                     )
@@ -389,9 +559,10 @@ class ChallengeViewModel @Inject constructor(
         memberId: Long
     ) {
 
-        // 이미 처리 중인 초대면 중복 방지
+        // 같은 초대를 처리 중이면 막기
         if (
-            _uiState.value.processingInvitationId ==
+            _uiState.value
+                .processingInvitationId ==
             memberId
         ) {
             return
@@ -403,7 +574,8 @@ class ChallengeViewModel @Inject constructor(
                 it.copy(
                     processingInvitationId =
                         memberId,
-                    errorMessage = null
+                    errorMessage =
+                        null
                 )
             }
 
@@ -424,8 +596,10 @@ class ChallengeViewModel @Inject constructor(
                                     it.memberId !=
                                             memberId
                                 },
+
                         processingInvitationId =
                             null,
+
                         successMessage =
                             "챌린지 초대를 거절했습니다."
                     )
@@ -454,19 +628,104 @@ class ChallengeViewModel @Inject constructor(
                 challengeRepository
                     .getMyChallenges()
 
+            val invitedMap =
+                mutableMapOf<Long, Set<Long>>()
+
+            val joinedMap =
+                mutableMapOf<Long, Set<Long>>()
+
+            val ownerIds =
+                mutableSetOf<Long>()
+
+            challenges.forEach { challenge ->
+
+                val memberStatuses =
+                    runCatching {
+
+                        challengeRepository
+                            .getChallengeMemberStatuses(
+                                challengeId =
+                                    challenge.id
+                            )
+                    }
+                        .getOrNull()
+
+                if (
+                    memberStatuses != null
+                ) {
+
+                    ownerIds.add(
+                        challenge.id
+                    )
+
+                    invitedMap[
+                        challenge.id
+                    ] =
+                        memberStatuses
+                            .filter { member ->
+                                member.status ==
+                                        "INVITED"
+                            }
+                            .map { member ->
+                                member.userId
+                            }
+                            .toSet()
+
+                    joinedMap[
+                        challenge.id
+                    ] =
+                        memberStatuses
+                            .filter { member ->
+                                member.status ==
+                                        "JOINED"
+                            }
+                            .map { member ->
+                                member.userId
+                            }
+                            .toSet()
+
+                } else {
+
+                    val members =
+                        challengeRepository
+                            .getChallengeMembers(
+                                challengeId =
+                                    challenge.id
+                            )
+
+                    joinedMap[
+                        challenge.id
+                    ] =
+                        members
+                            .filter { member ->
+                                member.status ==
+                                        "JOINED"
+                            }
+                            .map { member ->
+                                member.userId
+                            }
+                            .toSet()
+                }
+            }
+
             _uiState.update {
                 it.copy(
                     challenges =
-                        challenges
+                        challenges,
+
+                    invitedFriendIdsByChallenge =
+                        invitedMap,
+
+                    joinedFriendIdsByChallenge =
+                        joinedMap,
+
+                    ownerChallengeIds =
+                        ownerIds
                 )
             }
 
         } catch (e: Exception) {
 
-            /*
-             * 챌린지 생성 자체는 이미 성공했을 수 있으므로
-             * 생성 실패라고 표시하면 안 된다.
-             */
             _uiState.update {
                 it.copy(
                     errorMessage =

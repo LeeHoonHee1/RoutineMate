@@ -9,5 +9,9 @@ data class ChallengeDetailResponse(
 
     val myProgress: ChallengeProgressResponse,
 
-    val participants: List<ChallengeParticipantProgressResponse>
+    val participants: List<ChallengeParticipantProgressResponse>,
+
+    // OWNER 또는 MEMBER
+    val myRole: String
+
 )

@@ -30,5 +30,11 @@ data class ProfileUiState(
     val successMessage: String? = null,
 
     // 서버 / 네트워크 오류
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // 프로필 이미지 주소
+    val profileImageUrl: String? = null,
+
+    // 프로필 이미지 저장 중 여부
+    val isSavingProfileImage: Boolean = false,
 )

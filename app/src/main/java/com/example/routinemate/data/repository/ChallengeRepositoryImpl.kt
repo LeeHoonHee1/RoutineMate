@@ -126,4 +126,34 @@ class ChallengeRepositoryImpl @Inject constructor(
             challengeId = challengeId
         )
     }
+
+    // 챌린지 나가기
+    override suspend fun leaveChallenge(
+        challengeId: Long
+    ) {
+
+        remoteDataSource.leaveChallenge(
+            challengeId = challengeId
+        )
+    }
+
+    // 챌린지 삭제
+    override suspend fun deleteChallenge(
+        challengeId: Long
+    ) {
+
+        remoteDataSource.deleteChallenge(
+            challengeId = challengeId
+        )
+    }
+
+    override suspend fun getChallengeMemberStatuses(
+        challengeId: Long
+    ): List<ChallengeMemberResponse> {
+
+        return remoteDataSource
+            .getChallengeMemberStatuses(
+                challengeId = challengeId
+            )
+    }
 }

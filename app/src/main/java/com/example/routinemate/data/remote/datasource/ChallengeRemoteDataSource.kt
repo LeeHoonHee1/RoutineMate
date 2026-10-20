@@ -126,4 +126,34 @@ class ChallengeRemoteDataSource @Inject constructor(
             challengeId = challengeId
         )
     }
+
+    // 챌린지 나가기
+    suspend fun leaveChallenge(
+        challengeId: Long
+    ) {
+
+        challengeApi.leaveChallenge(
+            challengeId = challengeId
+        )
+    }
+
+    // 챌린지 삭제
+    suspend fun deleteChallenge(
+        challengeId: Long
+    ) {
+
+        challengeApi.deleteChallenge(
+            challengeId = challengeId
+        )
+    }
+
+    suspend fun getChallengeMemberStatuses(
+        challengeId: Long
+    ): List<ChallengeMemberResponse> {
+
+        return challengeApi
+            .getChallengeMemberStatuses(
+                challengeId = challengeId
+            )
+    }
 }

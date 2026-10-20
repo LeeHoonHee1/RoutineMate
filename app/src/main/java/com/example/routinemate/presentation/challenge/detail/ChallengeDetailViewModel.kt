@@ -175,4 +175,108 @@ class ChallengeDetailViewModel @Inject constructor(
             )
         }
     }
+
+    // 챌린지 나가기
+    fun leaveChallenge(
+        challengeId: Long
+    ) {
+
+        if (_uiState.value.isManagingChallenge) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    isManagingChallenge = true,
+                    errorMessage = null
+                )
+            }
+
+            try {
+
+                challengeRepository
+                    .leaveChallenge(
+                        challengeId = challengeId
+                    )
+
+                _uiState.update {
+                    it.copy(
+                        isManagingChallenge = false,
+                        successMessage =
+                            "챌린지에서 나갔습니다.",
+                        shouldCloseScreen = true
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                _uiState.update {
+                    it.copy(
+                        isManagingChallenge = false,
+                        errorMessage =
+                            "챌린지에서 나가지 못했습니다."
+                    )
+                }
+            }
+        }
+    }
+
+    // 챌린지 삭제
+    fun deleteChallenge(
+        challengeId: Long
+    ) {
+
+        if (_uiState.value.isManagingChallenge) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            _uiState.update {
+                it.copy(
+                    isManagingChallenge = true,
+                    errorMessage = null
+                )
+            }
+
+            try {
+
+                challengeRepository
+                    .deleteChallenge(
+                        challengeId = challengeId
+                    )
+
+                _uiState.update {
+                    it.copy(
+                        isManagingChallenge = false,
+                        successMessage =
+                            "챌린지를 삭제했습니다.",
+                        shouldCloseScreen = true
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                _uiState.update {
+                    it.copy(
+                        isManagingChallenge = false,
+                        errorMessage =
+                            "챌린지를 삭제하지 못했습니다."
+                    )
+                }
+            }
+        }
+    }
+
+    // 화면 종료 상태 초기화
+    fun consumeCloseScreen() {
+
+        _uiState.update {
+            it.copy(
+                shouldCloseScreen = false
+            )
+        }
+    }
 }

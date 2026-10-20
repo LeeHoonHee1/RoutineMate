@@ -6,6 +6,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.DELETE
 
 interface FriendApi {
 
@@ -42,4 +43,10 @@ interface FriendApi {
     @GET("friends")
     suspend fun getFriends():
             List<FriendUserResponse>
+
+    // 친구 삭제
+    @DELETE("friends/{friendId}")
+    suspend fun deleteFriend(
+        @Path("friendId") friendId: Long
+    )
 }

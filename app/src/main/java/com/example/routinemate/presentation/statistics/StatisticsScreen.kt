@@ -2,6 +2,7 @@ package com.example.routinemate.presentation.statistics
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.LinearProgressIndicator
+import com.example.routinemate.data.remote.dto.habit.HabitCategory
+import com.example.routinemate.data.remote.dto.statistics.CategoryHabitStatisticsResponse
 
 private data class StatisticPoint(
     val date: String,
@@ -60,11 +65,17 @@ fun StatisticsScreen(
     viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
+
         viewModel.loadWeeklyStatistics()
+
+        viewModel.loadCategoryStatistics()
+
+        // 연속 달성일 조회
+        viewModel.loadStreakStatistics()
     }
 
     val points =
-        uiState.weeklyStatistics.map {
+        uiState.statistics.map {
                 statistics ->
 
             StatisticPoint(
@@ -87,6 +98,21 @@ fun StatisticsScreen(
     val perfectDays =
         points.count {
             it.completionRate == 100
+        }
+
+    val periodText =
+        when (
+            uiState.selectedPeriod
+        ) {
+
+            StatisticsPeriod.WEEKLY ->
+                "최근 7일"
+
+            StatisticsPeriod.THIRTY_DAYS ->
+                "최근 30일"
+
+            StatisticsPeriod.MONTHLY ->
+                "이번 달"
         }
 
     Box(
@@ -114,6 +140,21 @@ fun StatisticsScreen(
             item {
 
                 StatisticsHeader()
+            }
+
+            // 7일 / 30일 선택
+            item {
+
+                StatisticsPeriodSelector(
+                    selectedPeriod =
+                        uiState.selectedPeriod,
+                    onPeriodSelected = { period ->
+
+                        viewModel.onPeriodChange(
+                            period
+                        )
+                    }
+                )
             }
 
             when {
@@ -149,8 +190,120 @@ fun StatisticsScreen(
                             totalCompletedCount =
                                 uiState.totalCompletedCount,
                             bestDay =
-                                uiState.bestDay
+                                uiState.bestDay,
+                            periodText =
+                                periodText
                         )
+                    }
+
+                    // 연속 달성 카드
+                    item {
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 20.dp
+                                ),
+                            shape =
+                                RoundedCornerShape(
+                                    24.dp
+                                ),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        Color.White
+                                )
+                        ) {
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        18.dp
+                                    ),
+                                horizontalArrangement =
+                                    Arrangement.SpaceBetween,
+                                verticalAlignment =
+                                    Alignment.CenterVertically
+                            ) {
+
+                                Column {
+
+                                    Text(
+                                        text =
+                                            "🔥 현재 연속 달성",
+                                        style =
+                                            MaterialTheme.typography
+                                                .bodyMedium,
+                                        color =
+                                            Color(
+                                                0xFF6D7972
+                                            )
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(
+                                                4.dp
+                                            )
+                                    )
+
+                                    Text(
+                                        text =
+                                            "${uiState.currentStreak}일",
+                                        style =
+                                            MaterialTheme.typography
+                                                .headlineMedium,
+                                        fontWeight =
+                                            FontWeight.Bold,
+                                        color =
+                                            Color(
+                                                0xFF123D33
+                                            )
+                                    )
+                                }
+
+                                Column(
+                                    horizontalAlignment =
+                                        Alignment.End
+                                ) {
+
+                                    Text(
+                                        text =
+                                            "🏆 최고 기록",
+                                        style =
+                                            MaterialTheme.typography
+                                                .bodyMedium,
+                                        color =
+                                            Color(
+                                                0xFF6D7972
+                                            )
+                                    )
+
+                                    Spacer(
+                                        modifier =
+                                            Modifier.height(
+                                                4.dp
+                                            )
+                                    )
+
+                                    Text(
+                                        text =
+                                            "${uiState.longestStreak}일",
+                                        style =
+                                            MaterialTheme.typography
+                                                .headlineMedium,
+                                        fontWeight =
+                                            FontWeight.Bold,
+                                        color =
+                                            Color(
+                                                0xFF123D33
+                                            )
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     // 작은 인사이트 카드
@@ -162,7 +315,9 @@ fun StatisticsScreen(
                             perfectDays =
                                 perfectDays,
                             averageRate =
-                                uiState.averageCompletionRate
+                                uiState.averageCompletionRate,
+                            periodText =
+                                periodText
                         )
                     }
 
@@ -175,7 +330,9 @@ fun StatisticsScreen(
 
                             WeeklyTrendCard(
                                 points =
-                                    points
+                                    points,
+                                periodText =
+                                    periodText
                             )
                         }
 
@@ -184,17 +341,36 @@ fun StatisticsScreen(
 
                             DailyRateSection(
                                 points =
-                                    points
+                                    points,
+                                periodText =
+                                    periodText
                             )
+                        }
+
+                        // 카테고리별 달성률
+                        if (
+                            uiState.categoryStatistics
+                                .isNotEmpty()
+                        ) {
+
+                            item {
+
+                                CategoryStatisticsSection(
+                                    statistics =
+                                        uiState.categoryStatistics
+                                )
+                            }
                         }
                     }
 
                     // 하단 메시지
                     item {
 
-                        WeeklyMessageCard(
+                        StatisticsMessageCard(
                             averageRate =
-                                uiState.averageCompletionRate
+                                uiState.averageCompletionRate,
+                            periodText =
+                                periodText
                         )
                     }
                 }
@@ -403,7 +579,8 @@ private fun StatisticsLandscape(
 private fun MainStatisticsCard(
     averageCompletionRate: Int,
     totalCompletedCount: Int,
-    bestDay: String?
+    bestDay: String?,
+    periodText: String
 ) {
 
     Card(
@@ -436,7 +613,9 @@ private fun MainStatisticsCard(
             // 큰 원형 달성률
             StatisticsProgressCircle(
                 completionRate =
-                    averageCompletionRate
+                    averageCompletionRate,
+                periodText =
+                    periodText
             )
 
             Spacer(
@@ -485,7 +664,7 @@ private fun MainStatisticsCard(
 
                 Text(
                     text =
-                        "이번 주도 꾸준히 실천하고 있어요.\n조금만 더 힘내봐요!",
+                        "$periodText 동안 꾸준히 실천하고 있어요.\n조금씩 기록을 쌓아가고 있어요!",
                     style =
                         MaterialTheme.typography
                             .bodyMedium,
@@ -530,7 +709,8 @@ private fun MainStatisticsCard(
 
 @Composable
 private fun StatisticsProgressCircle(
-    completionRate: Int
+    completionRate: Int,
+    periodText: String
 ) {
 
     Box(
@@ -566,7 +746,7 @@ private fun StatisticsProgressCircle(
         ) {
 
             Text(
-                text = "이번 주",
+                text = periodText,
                 style =
                     MaterialTheme.typography
                         .bodySmall,
@@ -661,7 +841,8 @@ private fun StatisticsMetric(
 private fun StatisticsInsightRow(
     activeDays: Int,
     perfectDays: Int,
-    averageRate: Int
+    averageRate: Int,
+    periodText: String
 ) {
 
     Row(
@@ -678,7 +859,7 @@ private fun StatisticsInsightRow(
             icon = "📊",
             title = "꾸준히 실천 중",
             value = "${activeDays}일",
-            description = "최근 7일 기준",
+            description = "$periodText 기준",
             modifier = Modifier.weight(1f)
         )
 
@@ -694,7 +875,7 @@ private fun StatisticsInsightRow(
             icon = "🌱",
             title = "평균 달성률",
             value = "$averageRate%",
-            description = "이번 주 기록",
+            description = "$periodText 기록",
             modifier = Modifier.weight(1f)
         )
     }
@@ -788,7 +969,8 @@ private fun InsightCard(
 
 @Composable
 private fun WeeklyTrendCard(
-    points: List<StatisticPoint>
+    points: List<StatisticPoint>,
+    periodText: String
 ) {
 
     Card(
@@ -813,7 +995,7 @@ private fun WeeklyTrendCard(
 
             Text(
                 text =
-                    "최근 7일 추이",
+                    "$periodText 추이",
                 style =
                     MaterialTheme.typography
                         .titleLarge,
@@ -858,52 +1040,70 @@ private fun WeeklyTrendCard(
                     Modifier.fillMaxWidth()
             ) {
 
-                points.forEach {
-                        point ->
+                val labelPoints =
+                    if (points.size <= 7) {
 
-                    Column(
-                        modifier =
-                            Modifier.weight(1f),
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
-                    ) {
+                        points
 
-                        Text(
-                            text =
-                                "${point.completionRate}%",
-                            style =
-                                MaterialTheme.typography
-                                    .labelSmall,
-                            color =
-                                Color(0xFF375B49)
+                    } else {
+
+                        listOf(
+                            points.first(),
+                            points[points.lastIndex / 4],
+                            points[points.lastIndex / 2],
+                            points[(points.lastIndex * 3) / 4],
+                            points.last()
                         )
+                    }
 
-                        Spacer(
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+
+                    labelPoints.forEach {
+                            point ->
+
+                        Column(
                             modifier =
-                                Modifier.height(3.dp)
-                        )
+                                Modifier.weight(1f),
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally
+                        ) {
 
-                        Text(
-                            text =
-                                formatStatisticsShortDate(
-                                    point.date
-                                ),
-                            style =
-                                MaterialTheme.typography
-                                    .labelSmall,
-                            color =
-                                Color(0xFF777F7A)
-                        )
+                            Text(
+                                text =
+                                    "${point.completionRate}%",
+                                style =
+                                    MaterialTheme.typography
+                                        .labelSmall,
+                                color =
+                                    Color(
+                                        0xFF375B49
+                                    )
+                            )
 
-                        Text(
-                            text =
-                                "(${formatStatisticsDay(point.date)})",
-                            style =
-                                MaterialTheme.typography
-                                    .labelSmall,
-                            color =
-                                Color(0xFF969C98)
-                        )
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        3.dp
+                                    )
+                            )
+
+                            Text(
+                                text =
+                                    formatStatisticsShortDate(
+                                        point.date
+                                    ),
+                                style =
+                                    MaterialTheme.typography
+                                        .labelSmall,
+                                color =
+                                    Color(
+                                        0xFF777F7A
+                                    )
+                            )
+                        }
                     }
                 }
             }
@@ -1127,7 +1327,8 @@ private fun WeeklyLineChart(
 
 @Composable
 private fun DailyRateSection(
-    points: List<StatisticPoint>
+    points: List<StatisticPoint>,
+    periodText: String
 ) {
 
     Column {
@@ -1159,7 +1360,7 @@ private fun DailyRateSection(
             )
 
             Text(
-                text = "최근 7일",
+                text = periodText,
                 style =
                     MaterialTheme.typography
                         .bodyMedium,
@@ -1188,23 +1389,31 @@ private fun DailyRateSection(
                 )
         ) {
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 8.dp,
-                        vertical = 14.dp
+            LazyRow(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                contentPadding =
+                    PaddingValues(
+                        horizontal = 12.dp
                     ),
                 horizontalArrangement =
-                    Arrangement.spacedBy(4.dp)
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
             ) {
 
-                points.forEach { point ->
+                items(
+                    count =
+                        points.size
+                ) { index ->
 
                     DailyRateCard(
-                        point = point,
+                        point =
+                            points[index],
                         modifier =
-                            Modifier.weight(1f)
+                            Modifier.width(
+                                64.dp
+                            )
                     )
                 }
             }
@@ -1322,18 +1531,19 @@ private fun DailyRateCard(
 }
 
 @Composable
-private fun WeeklyMessageCard(
-    averageRate: Int
+private fun StatisticsMessageCard(
+    averageRate: Int,
+    periodText: String
 ) {
 
     val message =
         when {
 
             averageRate >= 80 ->
-                "이번 주 정말 잘하고 있어요!"
+                "$periodText 정말 잘하고 있어요!"
 
             averageRate >= 50 ->
-                "이번 주도 꾸준히 잘 이어가고 있어요!"
+                "$periodText 꾸준히 잘 이어가고 있어요!"
 
             averageRate > 0 ->
                 "작은 실천부터 천천히 이어가봐요!"
@@ -1564,5 +1774,425 @@ private fun formatStatisticsDay(
     ) {
 
         ""
+    }
+}
+
+@Composable
+private fun StatisticsPeriodSelector(
+    selectedPeriod: StatisticsPeriod,
+    onPeriodSelected: (StatisticsPeriod) -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 20.dp
+            ),
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                8.dp
+            )
+    ) {
+
+        StatisticsPeriodButton(
+            text = "7일",
+            selected =
+                selectedPeriod ==
+                        StatisticsPeriod.WEEKLY,
+            modifier =
+                Modifier.weight(1f),
+            onClick = {
+                onPeriodSelected(
+                    StatisticsPeriod.WEEKLY
+                )
+            }
+        )
+
+        StatisticsPeriodButton(
+            text = "30일",
+            selected =
+                selectedPeriod ==
+                        StatisticsPeriod.THIRTY_DAYS,
+            modifier =
+                Modifier.weight(1f),
+            onClick = {
+                onPeriodSelected(
+                    StatisticsPeriod.THIRTY_DAYS
+                )
+            }
+        )
+
+        StatisticsPeriodButton(
+            text = "이번 달",
+            selected =
+                selectedPeriod ==
+                        StatisticsPeriod.MONTHLY,
+            modifier =
+                Modifier.weight(1f),
+            onClick = {
+                onPeriodSelected(
+                    StatisticsPeriod.MONTHLY
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun StatisticsPeriodButton(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+
+    Surface(
+        modifier = modifier
+            .height(46.dp)
+            .clickable {
+                onClick()
+            },
+        shape =
+            RoundedCornerShape(
+                16.dp
+            ),
+        color =
+            if (selected) {
+
+                Color(
+                    0xFFE1EBDC
+                )
+
+            } else {
+
+                Color.White
+            }
+    ) {
+
+        Box(
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text = text,
+                style =
+                    MaterialTheme.typography
+                        .labelLarge,
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Medium
+                    },
+                color =
+                    if (selected) {
+                        Color(0xFF476446)
+                    } else {
+                        Color(0xFF737C76)
+                    }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryStatisticsSection(
+    statistics:
+    List<CategoryHabitStatisticsResponse>
+) {
+
+    Column {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 20.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text =
+                    "카테고리별 달성률",
+                style =
+                    MaterialTheme.typography
+                        .titleLarge,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    Color(
+                        0xFF123D33
+                    )
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
+            )
+
+            Text(
+                text =
+                    "최근 30일",
+                style =
+                    MaterialTheme.typography
+                        .bodyMedium,
+                color =
+                    Color(
+                        0xFF7E8580
+                    )
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    12.dp
+                )
+        )
+
+        LazyRow(
+            contentPadding =
+                PaddingValues(
+                    start = 20.dp,
+                    end = 20.dp
+                ),
+            horizontalArrangement =
+                Arrangement.spacedBy(
+                    12.dp
+                )
+        ) {
+
+            items(
+                count =
+                    statistics.size
+            ) { index ->
+
+                CategoryStatisticsCard(
+                    statistics =
+                        statistics[index]
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryStatisticsCard(
+    statistics:
+    CategoryHabitStatisticsResponse
+) {
+
+    Card(
+        modifier =
+            Modifier.width(
+                170.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            )
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(
+                    16.dp
+                )
+        ) {
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(
+                            42.dp
+                        )
+                        .clip(
+                            CircleShape
+                        )
+                        .background(
+                            Color(
+                                0xFFF0F4EA
+                            )
+                        ),
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Text(
+                        text =
+                            categoryStatisticsIcon(
+                                statistics.category
+                            ),
+                        style =
+                            MaterialTheme.typography
+                                .titleLarge
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            10.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        categoryStatisticsLabel(
+                            statistics.category
+                        ),
+                    style =
+                        MaterialTheme.typography
+                            .titleMedium,
+                    fontWeight =
+                        FontWeight.Bold,
+                    color =
+                        Color(
+                            0xFF25362F
+                        )
+                )
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        16.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "${statistics.completionRate}%",
+                style =
+                    MaterialTheme.typography
+                        .headlineMedium,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                color =
+                    Color(
+                        0xFF476446
+                    )
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        8.dp
+                    )
+            )
+
+            LinearProgressIndicator(
+                progress = {
+                    (
+                            statistics.completionRate /
+                                    100f
+                            ).coerceIn(
+                            0f,
+                            1f
+                        )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(
+                        8.dp
+                    )
+                    .clip(
+                        CircleShape
+                    ),
+                color =
+                    Color(
+                        0xFF789174
+                    ),
+                trackColor =
+                    Color(
+                        0xFFE9ECE6
+                    )
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        10.dp
+                    )
+            )
+
+            Text(
+                text =
+                    "${statistics.completedCount} / " +
+                            "${statistics.totalScheduledCount}회 완료",
+                style =
+                    MaterialTheme.typography
+                        .bodySmall,
+                color =
+                    Color(
+                        0xFF7A847E
+                    )
+            )
+        }
+    }
+}
+
+private fun categoryStatisticsLabel(
+    category: HabitCategory
+): String {
+
+    return when (
+        category
+    ) {
+
+        HabitCategory.WATER ->
+            "물"
+
+        HabitCategory.BOOK ->
+            "책"
+
+        HabitCategory.SLEEP ->
+            "수면"
+
+        HabitCategory.EXERCISE ->
+            "운동"
+
+        HabitCategory.STUDY ->
+            "공부"
+    }
+}
+
+private fun categoryStatisticsIcon(
+    category: HabitCategory
+): String {
+
+    return when (
+        category
+    ) {
+
+        HabitCategory.WATER ->
+            "💧"
+
+        HabitCategory.BOOK ->
+            "📖"
+
+        HabitCategory.SLEEP ->
+            "🌙"
+
+        HabitCategory.EXERCISE ->
+            "🏃"
+
+        HabitCategory.STUDY ->
+            "📚"
     }
 }

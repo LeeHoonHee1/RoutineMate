@@ -63,4 +63,14 @@ class FriendRemoteDataSource @Inject constructor(
 
         return friendApi.getFriends()
     }
+
+    // 친구 삭제
+    suspend fun deleteFriend(
+        friendId: Long
+    ) {
+
+        friendApi.deleteFriend(
+            friendId = friendId
+        )
+    }
 }

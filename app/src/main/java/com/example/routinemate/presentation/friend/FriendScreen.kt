@@ -48,6 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @Composable
 fun FriendScreen(
@@ -61,6 +64,13 @@ fun FriendScreen(
         remember {
             SnackbarHostState()
         }
+
+    var deletingFriendId by
+    remember {
+        mutableStateOf<Long?>(
+            null
+        )
+    }
 
     // 성공 메시지
     LaunchedEffect(
@@ -140,8 +150,11 @@ fun FriendScreen(
                     requestCount =
                         uiState.receivedRequests.size,
 
-                    // TODO 나중에 실제 챌린지 개수와 연결
-                    challengeCount = 3
+                    // 친구들과 함께 참여한 챌린지 수
+                    challengeCount =
+                        uiState.friends.sumOf {
+                            it.sharedChallengeCount
+                        }.toInt()
                 )
             }
 
@@ -202,7 +215,7 @@ fun FriendScreen(
                     items =
                         uiState.receivedRequests,
                     key = { request ->
-                        request.id
+                        "request_${request.id}"
                     }
                 ) { request ->
 
@@ -270,15 +283,25 @@ fun FriendScreen(
                     items =
                         uiState.friends,
                     key = { friend ->
-                        friend.id
+                        "friend_${friend.id}"
                     }
                 ) { friend ->
 
                     FriendListCard(
                         nickname =
                             friend.nickname,
+
                         email =
-                            friend.email
+                            friend.email,
+
+                        isDeleting =
+                            uiState.deletingFriendId ==
+                                    friend.id,
+
+                        onDelete = {
+                            deletingFriendId =
+                                friend.id
+                        }
                     )
                 }
             }
@@ -323,7 +346,7 @@ fun FriendScreen(
                     items =
                         uiState.searchResults,
                     key = { user ->
-                        user.id
+                        "search_${user.id}"
                     }
                 ) { user ->
 
@@ -357,6 +380,73 @@ fun FriendScreen(
                 FriendFooterCard()
             }
         }
+    }
+
+    if (
+        deletingFriendId != null
+    ) {
+
+        AlertDialog(
+            onDismissRequest = {
+                deletingFriendId =
+                    null
+            },
+
+            title = {
+                Text(
+                    text =
+                        "친구를 삭제할까요?"
+                )
+            },
+
+            text = {
+                Text(
+                    text =
+                        "삭제하면 친구 목록에서 제거됩니다."
+                )
+            },
+
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        val friendId =
+                            deletingFriendId
+                                ?: return@Button
+
+                        viewModel.deleteFriend(
+                            friendId = friendId
+                        )
+
+                        deletingFriendId =
+                            null
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "삭제"
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                OutlinedButton(
+                    onClick = {
+                        deletingFriendId =
+                            null
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "취소"
+                    )
+                }
+            }
+        )
     }
 }
 
@@ -1082,7 +1172,9 @@ private fun FriendRequestCard(
 @Composable
 private fun FriendListCard(
     nickname: String,
-    email: String
+    email: String,
+    isDeleting: Boolean,
+    onDelete: () -> Unit
 ) {
 
     Card(
@@ -1231,24 +1323,33 @@ private fun FriendListCard(
                     )
             ) {
 
-                Text(
-                    text =
-                        "🌱 친구",
-                    modifier =
-                        Modifier.padding(
-                            horizontal =
-                                12.dp,
-                            vertical =
-                                7.dp
-                        ),
-                    style =
-                        MaterialTheme.typography
-                            .labelMedium,
-                    color =
-                        Color(
-                            0xFF517252
+                OutlinedButton(
+                    onClick =
+                        onDelete,
+
+                    enabled =
+                        !isDeleting,
+
+                    shape =
+                        RoundedCornerShape(
+                            50.dp
                         )
-                )
+                ) {
+
+                    Text(
+                        text =
+                            if (isDeleting) {
+                                "삭제 중"
+                            } else {
+                                "삭제"
+                            },
+
+                        color =
+                            Color(
+                                0xFF8A5A55
+                            )
+                    )
+                }
             }
         }
     }

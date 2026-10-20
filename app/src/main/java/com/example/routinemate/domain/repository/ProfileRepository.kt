@@ -2,6 +2,7 @@ package com.example.routinemate.domain.repository
 
 import com.example.routinemate.data.remote.dto.profile.ProfileResponse
 import com.example.routinemate.data.remote.dto.profile.ProfileSummaryResponse
+import okhttp3.MultipartBody
 
 interface ProfileRepository {
 
@@ -17,4 +18,9 @@ interface ProfileRepository {
     // 내 활동 요약
     suspend fun getMyProfileSummary():
             ProfileSummaryResponse
+
+    // 실제 프로필 이미지 파일 업로드
+    suspend fun uploadProfileImage(
+        file: MultipartBody.Part
+    ): ProfileResponse
 }

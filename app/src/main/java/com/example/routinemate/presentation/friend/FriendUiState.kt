@@ -33,5 +33,9 @@ data class FriendUiState(
     val successMessage: String? = null,
 
     // 에러 메시지
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // 삭제 처리 중인 친구 ID
+    val deletingFriendId: Long? = null
+
 )

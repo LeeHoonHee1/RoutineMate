@@ -6,5 +6,7 @@ import kotlinx.serialization.Serializable
 data class ProfileResponse(
     val id: Long,
     val email: String,
-    val nickname: String
+    val nickname: String,
+    // 프로필 이미지 주소
+    val profileImageUrl: String?
 )

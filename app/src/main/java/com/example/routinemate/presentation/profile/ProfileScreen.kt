@@ -50,6 +50,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routinemate.presentation.statistics.StatisticsViewModel
 import java.time.LocalDate
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.example.routinemate.data.remote.NetworkConstants
 
 @Composable
 fun ProfileScreen(
@@ -72,6 +78,30 @@ fun ProfileScreen(
     val snackbarHostState =
         androidx.compose.runtime.remember {
             SnackbarHostState()
+        }
+
+    val context =
+        LocalContext.current
+
+    // 갤러리에서 프로필 이미지 선택
+    val profileImageLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.GetContent()
+        ) { uri ->
+
+            if (uri != null) {
+
+                val file =
+                    uriToProfileImagePart(
+                        context = context,
+                        uri = uri
+                    )
+
+                viewModel.uploadProfileImage(
+                    file = file
+                )
+            }
         }
 
     // 프로필 화면 진입 시 최근 7일 통계 조회
@@ -194,6 +224,24 @@ fun ProfileScreen(
                                     profile.nickname,
                                 email =
                                     profile.email,
+
+                                profileImageUrl =
+                                    profile.profileImageUrl,
+
+                                onImageClick = {
+
+                                    if (
+                                        !uiState.isSavingProfileImage
+                                    ) {
+                                        profileImageLauncher.launch(
+                                            "image/*"
+                                        )
+                                    }
+                                },
+
+                                isSavingProfileImage =
+                                    uiState.isSavingProfileImage,
+
                                 onEditClick = {
 
                                     viewModel
@@ -271,6 +319,40 @@ fun ProfileScreen(
                                         onChallengeClick
                                 )
                             }
+                        }
+                    }
+
+                    // 나의 기록
+                    item {
+
+                        Column {
+
+                            SectionTitle(
+                                title = "나의 기록"
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        12.dp
+                                    )
+                            )
+
+                            MyRecordCard(
+                                activeDaysSinceSignup =
+                                    summary
+                                        ?.activeDaysSinceSignup
+                                        ?: 0,
+
+                                topHabitCategory =
+                                    summary
+                                        ?.topHabitCategory,
+
+                                totalChallengeParticipationCount =
+                                    summary
+                                        ?.totalChallengeParticipationCount
+                                        ?: 0
+                            )
                         }
                     }
 
@@ -869,6 +951,9 @@ private fun ProfileLandscape(
 private fun ProfileHeroCard(
     nickname: String,
     email: String,
+    profileImageUrl: String?,
+    onImageClick: () -> Unit,
+    isSavingProfileImage: Boolean,
     onEditClick: () -> Unit
 ) {
 
@@ -913,28 +998,63 @@ private fun ProfileHeroCard(
                         Color(
                             0xFFDDE9D8
                         )
-                    ),
+                    )
+                    .clickable(
+                        enabled =
+                            !isSavingProfileImage
+                    ) {
+                        onImageClick()
+                    },
                 contentAlignment =
                     Alignment.Center
             ) {
 
-                Text(
-                    text =
-                        nickname
-                            .firstOrNull()
-                            ?.toString()
-                            ?.uppercase()
-                            ?: "R",
-                    style =
-                        MaterialTheme.typography
-                            .headlineLarge,
-                    fontWeight =
-                        FontWeight.Bold,
-                    color =
-                        Color(
-                            0xFF527157
-                        )
-                )
+                if (
+                    isSavingProfileImage
+                ) {
+
+                    CircularProgressIndicator(
+                        modifier =
+                            Modifier.size(28.dp),
+                        strokeWidth =
+                            3.dp,
+                        color =
+                            Color(0xFF527157)
+                    )
+
+                } else if (
+                    !profileImageUrl.isNullOrBlank()
+                ) {
+
+                    AsyncImage(
+                        model =
+                            "${NetworkConstants.BASE_URL.removeSuffix("/")}$profileImageUrl",
+                        contentDescription =
+                            "프로필 이미지",
+                        modifier =
+                            Modifier.fillMaxSize(),
+                        contentScale =
+                            ContentScale.Crop
+                    )
+
+                } else {
+
+                    Text(
+                        text =
+                            nickname
+                                .firstOrNull()
+                                ?.toString()
+                                ?.uppercase()
+                                ?: "R",
+                        style =
+                            MaterialTheme.typography
+                                .headlineLarge,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            Color(0xFF527157)
+                    )
+                }
             }
 
             Spacer(
@@ -1172,6 +1292,165 @@ private fun ActivityCard(
             )
         }
     }
+}
+
+@Composable
+private fun MyRecordCard(
+    activeDaysSinceSignup: Long,
+    topHabitCategory: String?,
+    totalChallengeParticipationCount: Long
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 20.dp
+            ),
+        shape =
+            RoundedCornerShape(
+                22.dp
+            ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 1.dp
+            )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 18.dp,
+                    vertical = 8.dp
+                )
+        ) {
+
+            RecordRow(
+                icon = "📅",
+                title = "함께한 지",
+                value = "${activeDaysSinceSignup}일"
+            )
+
+            RecordDivider()
+
+            RecordRow(
+                icon = "🌱",
+                title = "가장 많이 한 습관",
+                value =
+                    habitCategoryLabel(
+                        topHabitCategory
+                    )
+            )
+
+            RecordDivider()
+
+            RecordRow(
+                icon = "🚩",
+                title = "누적 챌린지",
+                value =
+                    "${totalChallengeParticipationCount}개"
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecordRow(
+    icon: String,
+    title: String,
+    value: String
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                vertical = 14.dp
+            ),
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color(
+                        0xFFF0F4EA
+                    )
+                ),
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text = icon,
+                style =
+                    MaterialTheme.typography
+                        .titleMedium
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.width(
+                    12.dp
+                )
+        )
+
+        Text(
+            text = title,
+            modifier =
+                Modifier.weight(1f),
+            style =
+                MaterialTheme.typography
+                    .bodyMedium,
+            color =
+                Color(
+                    0xFF6F7B74
+                )
+        )
+
+        Text(
+            text = value,
+            style =
+                MaterialTheme.typography
+                    .titleMedium,
+            fontWeight =
+                FontWeight.Bold,
+            color =
+                Color(
+                    0xFF173F34
+                )
+        )
+    }
+}
+
+@Composable
+private fun RecordDivider() {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = 54.dp
+            )
+            .height(1.dp)
+            .background(
+                Color(
+                    0xFFF0F1EE
+                )
+            )
+    )
 }
 
 @Composable
@@ -1805,6 +2084,32 @@ private fun activityUnit(
 
         else ->
             "개"
+    }
+}
+
+private fun habitCategoryLabel(
+    category: String?
+): String {
+
+    return when (category) {
+
+        "WATER" ->
+            "물 마시기"
+
+        "BOOK" ->
+            "독서"
+
+        "SLEEP" ->
+            "수면"
+
+        "EXERCISE" ->
+            "운동"
+
+        "STUDY" ->
+            "공부"
+
+        else ->
+            "-"
     }
 }
 

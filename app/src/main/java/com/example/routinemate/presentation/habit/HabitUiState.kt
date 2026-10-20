@@ -1,14 +1,25 @@
 package com.example.routinemate.presentation.habit
 
+import com.example.routinemate.data.remote.dto.habit.HabitCategory
+import com.example.routinemate.data.remote.dto.habit.HabitRepeatDay
 import com.example.routinemate.data.remote.dto.habit.HabitResponse
 
 data class HabitUiState(
 
     val habits: List<HabitResponse> = emptyList(),
 
+    // 오늘 해야 하는 습관 목록
+    val todayHabits: List<HabitResponse> = emptyList(),
+
     val title: String = "",
 
     val description: String = "",
+
+    // 선택한 습관 카테고리
+    val selectedCategory: HabitCategory? = null,
+
+    // 선택한 반복 요일
+    val selectedRepeatDays: Set<HabitRepeatDay> = emptySet(),
 
     val editingHabitId: Long? = null,
 
@@ -33,7 +44,6 @@ data class HabitUiState(
     // 입력값 검증 오류
     val inputErrorMessage: String? = null,
 
-    // 기존 값 유지
     val isCreateSuccess: Boolean = false,
 
     // 생성 / 수정 성공 여부

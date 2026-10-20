@@ -274,7 +274,11 @@ fun AppNavHost(
                     ?: return@composable
 
             ChallengeDetailScreen(
-                challengeId = challengeId
+                challengeId = challengeId,
+
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
     }

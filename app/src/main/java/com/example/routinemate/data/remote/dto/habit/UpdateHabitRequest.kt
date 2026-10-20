@@ -9,5 +9,11 @@ data class UpdateHabitRequest(
     val title: String,
 
     // 수정할 습관 설명
-    val description: String? = null
+    val description: String? = null,
+
+    // 수정할 습관 카테고리
+    val category: HabitCategory,
+
+    // 반복 요일
+    val repeatDays: Set<HabitRepeatDay>
 )

@@ -47,4 +47,8 @@ interface HabitApi {
     suspend fun cancelHabitCompletion(
         @Path("habitId") habitId: Long
     )
+
+    // 오늘 예정된 습관 목록 조회
+    @GET("habits/today")
+    suspend fun getTodayHabits(): List<HabitResponse>
 }

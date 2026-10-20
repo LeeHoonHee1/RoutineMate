@@ -64,4 +64,14 @@ class FriendRepositoryImpl @Inject constructor(
 
         return remoteDataSource.getFriends()
     }
+
+    // 친구 삭제
+    override suspend fun deleteFriend(
+        friendId: Long
+    ) {
+
+        remoteDataSource.deleteFriend(
+            friendId = friendId
+        )
+    }
 }

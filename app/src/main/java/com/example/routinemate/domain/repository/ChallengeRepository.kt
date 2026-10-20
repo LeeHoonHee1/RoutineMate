@@ -62,4 +62,18 @@ interface ChallengeRepository {
     suspend fun cancelChallengeCompletion(
         challengeId: Long
     )
+
+    // 챌린지 나가기
+    suspend fun leaveChallenge(
+        challengeId: Long
+    )
+
+    // 챌린지 삭제
+    suspend fun deleteChallenge(
+        challengeId: Long
+    )
+
+    suspend fun getChallengeMemberStatuses(
+        challengeId: Long
+    ): List<ChallengeMemberResponse>
 }

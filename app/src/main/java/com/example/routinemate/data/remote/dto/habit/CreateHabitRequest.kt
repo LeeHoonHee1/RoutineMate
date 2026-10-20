@@ -9,5 +9,11 @@ data class CreateHabitRequest(
     val title: String,
 
     // 습관 설명은 선택
-    val description: String? = null
+    val description: String? = null,
+
+    // 습관 카테고리
+    val category: HabitCategory,
+
+    // 반복 요일
+    val repeatDays: Set<HabitRepeatDay>
 )

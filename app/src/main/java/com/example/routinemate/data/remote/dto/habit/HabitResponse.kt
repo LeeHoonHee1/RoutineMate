@@ -14,6 +14,12 @@ data class HabitResponse(
     // 습관 설명
     val description: String?,
 
+    // 습관 카테고리
+    val category: HabitCategory,
+
+    // 반복 요일
+    val repeatDays: Set<HabitRepeatDay>,
+
     // 활성화 여부
     val isActive: Boolean,
 
